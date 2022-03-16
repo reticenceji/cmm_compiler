@@ -1,6 +1,15 @@
+use pest::Parser;
 #[derive(Parser)]
 #[grammar = "grammar.pest"]
 pub struct CParser;
+
+pub fn parse(source_code: String) {
+    let pairs = CParser::parse(Rule::program, &source_code)
+        .unwrap()
+        .next()
+        .unwrap();
+    todo!("parser tree -> abstract syntax tree");
+}
 
 #[cfg(test)]
 mod test {
