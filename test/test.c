@@ -1,4 +1,6 @@
 int a;
+
+void func(int a) {}
 int main() {
     int b;
     b = a + 114514;
@@ -6,5 +8,6 @@ int main() {
     if (b != 1) {
         b = 1;
     }
+    func(1);
     return a;
 }

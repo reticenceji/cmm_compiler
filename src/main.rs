@@ -1,3 +1,4 @@
+#![feature(let_chains)]
 extern crate clap;
 extern crate pest;
 #[macro_use]
@@ -24,6 +25,7 @@ fn main() {
     source_file
         .read_to_string(&mut source_code)
         .expect("Unable to read the file!");
-    parse(source_code);
+    let ast = parse(source_code);
+    println!("{:?}", ast);
     todo!("ast, check, generate code...");
 }

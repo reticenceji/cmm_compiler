@@ -3,31 +3,32 @@
 
 program = {SOI ~ (var_declaration | func_declaration)* ~ EOI}
 
-var_declaration = {(type_spec ~ id ~ "[" ~ int_literal ~ "]" ~ ";") | (type_spec ~ id ~ ";")} 
+var_declaration = {(type_spec ~ id ~ ("[" ~ int_literal ~ "]")? ~ ";")} 
 
-func_declaration = {type_spec ~ id ~ params ~ compound_stmt}
+func_declaration = {type_spec ~ id ~ params ~ block_stmt}
     params = {"(" ~ param? ~ ("," ~ param)*  ~ ")"}
-    param = {type_spec ~ id}
+    param = {type_spec ~ id ~ pointer?}
+    pointer = @{"[" ~ "]"}
 
-compound_stmt = {"{" ~ (var_declaration *) ~ (statement *) ~ "}"}        
-statement = {expression_stmt | selection_stmt | iteration_stmt | return_stmt | compound_stmt}
+block_stmt = {"{" ~ (var_declaration *) ~ (statement *) ~ "}"}        
+statement = {expression_stmt | selection_stmt | iteration_stmt | return_stmt | block_stmt}
     expression_stmt = {(expression ~ ";") | ";"}
-    selection_stmt = {("if" ~ "(" ~ expression ~ ")" ~ statement ~ "else" ~ statement) | ("if" ~ "(" ~ expression ~ ")" ~ statement)}
+    selection_stmt = {("if" ~ "(" ~ expression ~ ")" ~ statement ~ ("else" ~ statement)?)}
     iteration_stmt = {"while" ~ "(" ~ expression ~ ")" ~ statement}
     return_stmt = {("return" ~ expression ~ ";") | ("return" ~ ";")}
         
-expression = {assignment_expression | equlity_expression}
+expression = {assignment_expr | equlity_expr}
 
-assignment_expression = {var ~ assign_simple ~ expression}
-unary_expression = {var | int_literal | call_expression | bracket_expression}
-multiplicative_expression = {unary_expression ~ ((op_mul | op_div) ~ unary_expression)*}
-additive_expression = { multiplicative_expression ~ ((op_add | op_sub) ~ multiplicative_expression)*}
-cmp_expression = {additive_expression ~ ((op_ge | op_le | op_gt | op_lt)  ~ additive_expression)*}
-equlity_expression = {cmp_expression ~ ((op_eq | op_ne) ~ cmp_expression)*}
+assignment_expr = {var ~ assign_simple ~ expression}
+unary_expr = {bracket_expr | call_expr | var | int_literal}
+multiplicative_expr = {unary_expr ~ ((op_mul | op_div) ~ unary_expr)*}
+additive_expr = { multiplicative_expr ~ ((op_add | op_sub) ~ multiplicative_expr)*}
+cmp_expr = {additive_expr ~ ((op_ge | op_le | op_gt | op_lt)  ~ additive_expr)*}
+equlity_expr = {cmp_expr ~ ((op_eq | op_ne) ~ cmp_expr)*}
 
-var = {(id ~ "[" ~ expression ~ "]") | id}
-bracket_expression = {"(" ~ expression ~")"}
-call_expression = {id ~ "(" ~ args ~ ")"}
+var = {id ~ ("[" ~ expression ~ "]")?}
+bracket_expr = {"(" ~ expression ~")"}
+call_expr = {id ~ "(" ~ args ~ ")"}
 args = {expression? ~("," ~ expression)*}
 id = @{(ASCII_ALPHA | "_") ~ (ASCII_ALPHA | "_" | ASCII_DIGIT)*}
 
@@ -47,7 +48,7 @@ op_add = {"+"}
 op_sub = {"-"}
 op_mul = {"*"}
 op_div = {"/"}
-assign_simple = { "=" }
+assign_simple = {"="}
 // literal
 int_literal = { bin_literal | hex_literal | oct_literal | dec_literal }
 dec_literal = @{ "0" | ASCII_NONZERO_DIGIT ~ ASCII_DIGIT* }
