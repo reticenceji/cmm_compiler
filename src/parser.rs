@@ -104,11 +104,12 @@ fn visit_var_declaration(pair: Pair<'_, Rule>, ast: &mut Vec<AST>) {
 }
 
 fn visit_int_literal(pair: Pair<'_, Rule>) -> i64 {
-    match pair.as_rule() {
-        Rule::bin_literal => i64::from_str_radix(pair.as_str(), 2).unwrap(),
-        Rule::oct_literal => i64::from_str_radix(pair.as_str(), 8).unwrap(),
-        Rule::dec_literal => i64::from_str_radix(pair.as_str(), 10).unwrap(),
-        Rule::hex_literal => i64::from_str_radix(pair.as_str(), 16).unwrap(),
+    let child = pair.into_inner().next().unwrap();
+    match child.as_rule() {
+        Rule::bin_literal => i64::from_str_radix(child.as_str(), 2).unwrap(),
+        Rule::oct_literal => i64::from_str_radix(child.as_str(), 8).unwrap(),
+        Rule::dec_literal => i64::from_str_radix(child.as_str(), 10).unwrap(),
+        Rule::hex_literal => i64::from_str_radix(child.as_str(), 16).unwrap(),
         _ => 0,
     }
 }
@@ -242,12 +243,14 @@ fn visit_statement(pair: Pair<'_, Rule>, ast: &mut Vec<AST>) {
     }
 }
 
-fn visit_expression(pair: Pair<'_, Rule>) -> AST {
-    let child = pair.into_inner().next().unwrap();
-    match child.as_rule() {
-        Rule::assignment_expr => visit_assignment_expr(child),
-        Rule::unary_expr => visit_unary_expr(child),
-        _ => visit_binary_expr(child),
+fn visit_expression(mut pair: Pair<'_, Rule>) -> AST {
+    if pair.as_rule() == Rule::expression {
+        pair = pair.into_inner().next().unwrap();
+    }
+    match pair.as_rule() {
+        Rule::assignment_expr => visit_assignment_expr(pair),
+        Rule::unary_expr => visit_unary_expr(pair),
+        _ => visit_binary_expr(pair),
     }
 }
 
