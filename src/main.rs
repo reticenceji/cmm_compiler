@@ -3,7 +3,10 @@ extern crate clap;
 extern crate pest;
 #[macro_use]
 extern crate pest_derive;
+#[macro_use]
+extern crate serde;
 
+mod codegen;
 mod parser;
 
 use clap::Parser;
@@ -26,6 +29,9 @@ fn main() {
         .read_to_string(&mut source_code)
         .expect("Unable to read the file!");
     let ast = parse(source_code);
-    println!("{:?}", ast);
-    todo!("ast, check, generate code...");
+    println!("{:?}", &ast);
+    println!("{:?}", serde_json::to_string(&ast));
+    todo!("use ast to generate llvm-ir...");
+    todo!("write llvm pass to optmize ir");
+    todo!("generate code and run");
 }

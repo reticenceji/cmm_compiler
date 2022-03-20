@@ -2,9 +2,9 @@ use pest::{iterators::Pair, Parser};
 #[derive(Parser)]
 #[grammar = "grammar.pest"]
 pub struct CParser;
+use serde::Serialize;
 use sugars::boxed;
-
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub enum AST {
     /// type, name, params, block_statements: type name(params) {statements}
     FunctionDec(Type, String, Vec<(Type, String)>, Box<AST>),
@@ -31,7 +31,7 @@ pub enum AST {
     Variable(String, Option<Box<AST>>),
     IntLiteral(i64),
 }
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub enum Oprand {
     Add,
     Sub,
@@ -44,7 +44,7 @@ pub enum Oprand {
     Eq,
     Ne,
 }
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub enum Type {
     Int,
     Void,
@@ -52,7 +52,8 @@ pub enum Type {
     IntPtr,
 }
 
-/// Turn the source code to AST
+/// Turn the source code to AST,
+/// which can be serialized to json.
 pub fn parse(source_code: String) -> Vec<AST> {
     let root = CParser::parse(Rule::program, &source_code)
         .unwrap()
@@ -356,13 +357,15 @@ mod test_parse {
         let mut f = File::open("test/test.c").unwrap();
         let mut buf = String::new();
         f.read_to_string(&mut buf).unwrap();
-        let pairs = super::CParser::parse(super::Rule::program, &buf)
+        let root = super::CParser::parse(super::Rule::program, &buf)
             .unwrap()
             .next()
             .unwrap();
+        assert_eq!(root.as_rule(), super::Rule::program);
+
         // println!("{:?}", pairs.as_span());
 
-        dfs(0, pairs);
+        dfs(0, root);
     }
     #[test]
     fn ast_test() {
@@ -370,8 +373,9 @@ mod test_parse {
         let mut buf = String::new();
         f.read_to_string(&mut buf).unwrap();
         let ast = super::parse(buf);
-        for i in ast {
+        for i in &ast {
             println!("{:?}", i);
         }
+        println!("{}", serde_json::to_string_pretty(&ast).unwrap());
     }
 }
