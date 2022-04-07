@@ -24,3 +24,4 @@ C-是《Compiler Construction: Principles and Practice》书后介绍的一个�
 - [ ] 现在不能有全局变量，需要修复。
 - [ ] 文档。
 - [ ] 语法树的可视化。
+- [ ] 执行环境。

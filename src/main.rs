@@ -32,8 +32,7 @@ fn main() {
     let prefix = args.file.strip_suffix(".c").unwrap_or(args.file.as_str());
 
     let ast = AST::parse(source_code);
-    println!("{:?}", &ast);
-    println!("{:?}", serde_json::to_string(&ast));
+    // println!("{:?}", serde_json::to_string(&ast));
     // A Context is a container for all LLVM entities including Modules.
     let context = Context::create();
     let codegen = CodeBuilder::new(&context, args.file.as_str(), &ast).unwrap();
