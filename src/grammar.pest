@@ -1,0 +1,87 @@
+// https://pest.rs/book/grammars/peg.html
+// https://pest.rs/book/grammars/syntax.html
+
+program = {SOI ~ (var_declaration | func_declaration)* ~ EOI}
+
+var_declaration = {(type_spec ~ id ~ ("[" ~ int_literal ~ "]")? ~ ";")} 
+
+func_declaration = {type_spec ~ id ~ params ~ block_stmt}
+    params = {"(" ~ param? ~ ("," ~ param)*  ~ ")"}
+    param = {type_spec ~ id ~ pointer?}
+    pointer = @{"[" ~ "]"}
+
+block_stmt = {"{" ~ (var_declaration *) ~ (statement *) ~ "}"}        
+statement = {expression_stmt | selection_stmt | iteration_stmt | return_stmt | block_stmt}
+    expression_stmt = {(expression ~ ";") | ";"}
+    selection_stmt = {("if" ~ "(" ~ expression ~ ")" ~ statement ~ ("else" ~ statement)?)}
+    iteration_stmt = {"while" ~ "(" ~ expression ~ ")" ~ statement}
+    return_stmt = {("return" ~ expression ~ ";") | ("return" ~ ";")}
+        
+expression = {assignment_expr | equlity_expr}
+
+assignment_expr = {var ~ assign_simple ~ expression}
+unary_expr = {bracket_expr | call_expr | var | int_literal}
+multiplicative_expr = {unary_expr ~ ((op_mul | op_div) ~ unary_expr)*}
+additive_expr = { multiplicative_expr ~ ((op_add | op_sub) ~ multiplicative_expr)*}
+cmp_expr = {additive_expr ~ ((op_ge | op_le | op_gt | op_lt)  ~ additive_expr)*}
+equlity_expr = {cmp_expr ~ ((op_eq | op_ne) ~ cmp_expr)*}
+
+var = {id ~ ("[" ~ expression ~ "]")?}
+bracket_expr = {"(" ~ expression ~")"}
+call_expr = {id ~ "(" ~ args ~ ")"}
+args = {expression? ~("," ~ expression)*}
+id = @{(ASCII_ALPHA | "_") ~ (ASCII_ALPHA | "_" | ASCII_DIGIT)*}
+
+// tokens
+// type token
+type_spec = {int | void}
+int = {"int"}
+void = {"void"}
+// operation token
+op_ge = {">="}
+op_le = {"<="}
+op_gt = {">"}
+op_lt = {"<"}
+op_eq = {"=="}
+op_ne = {"!="}
+op_add = {"+"}
+op_sub = {"-"}
+op_mul = {"*"}
+op_div = {"/"}
+assign_simple = {"="}
+// literal
+int_literal = { bin_literal | hex_literal | oct_literal | dec_literal }
+dec_literal = @{ "0" | ASCII_NONZERO_DIGIT ~ ASCII_DIGIT* }
+bin_literal = @{ ^"0b" ~ ASCII_BIN_DIGIT+ }
+oct_literal = @{ ^"0o" ~ ASCII_OCT_DIGIT+ }
+hex_literal = @{ ^"0x" ~ ASCII_HEX_DIGIT+ }
+// keyword
+keyword = {
+    "char" |
+    "bool" |
+    "true" |
+    "false" |
+    "char" |
+    "short" |
+    "double" |
+    "float" |
+    "long" |
+    "unsigned" |
+    "int" |
+    "void" |
+    "return" |
+    "break" |
+    "if" |
+    "else" |
+    "continue" |
+    "while" |
+    "for" |
+    "do"
+}
+
+WHITESPACE = _{ " " | "\n" | "\r" }
+COMMENT = _{
+    ("/*" ~ (!"*/" ~ ANY)* ~ "*/") // Block comment
+    | ("//" ~ (!"\n" ~ ANY)* ~ ("\n" | EOI)) // Line comment
+}
+
