@@ -14,7 +14,11 @@ To run
 ./cmm --file xxx.c
 ```
 
-Then compile the .asm file with your local compiler, such as gcc in Linux.
+Then compile the .s file with your local compiler, such as
+
+```
+clang io.c test.s
+```
 
 ## 词法分析&语法分析
 
