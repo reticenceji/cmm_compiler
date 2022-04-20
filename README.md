@@ -2,6 +2,20 @@
 
 C-是《Compiler Construction: Principles and Practice》书后介绍的一个精简版的C语言。
 
+To build:
+
+```shell
+cargo build --release
+```
+
+To run
+
+```shell
+./cmm --file xxx.c
+```
+
+Then compile the .asm file with your local compiler, such as gcc in Linux.
+
 ## 词法分析&语法分析
 
 使用[PEST](https://pest.rs/)提供的[Parsing expression grammars](https://pest.rs/book/grammars/peg.html)，来对词法和语法进行描述。
@@ -18,7 +32,7 @@ C-是《Compiler Construction: Principles and Practice》书后介绍的一个�
 
 ## TODO
 
-- [ ] `input`和`output`函数。
+- [ ] `input`和 `output`函数。
 - [ ] 完整的测试。
 - [ ] 代码优化。
 - [ ] 现在不能有全局变量，需要修复。

@@ -32,10 +32,12 @@ fn main() {
     let prefix = args.file.strip_suffix(".c").unwrap_or(args.file.as_str());
 
     let ast = AST::parse(source_code);
-    // println!("{:?}", serde_json::to_string(&ast));
     // A Context is a container for all LLVM entities including Modules.
     let context = Context::create();
     let codegen = CodeBuilder::new(&context, args.file.as_str(), &ast).unwrap();
+    // Now we build asm file, llvm-ir file and print json AST.
+    // After we will make it chosable.
     codegen.build_asm(Path::new(&format!("{}.s", prefix)));
     codegen.build_llvmir(Path::new(&format!("{}.ll", prefix)));
+    println!("{:?}", serde_json::to_string(&ast));
 }

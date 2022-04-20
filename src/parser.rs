@@ -376,23 +376,47 @@ fn visit_binary_expr(pair: Pair<'_, Rule>) -> AST {
     }
     lhs
 }
+fn dfs(tabs: &mut Vec<bool>, pair: Pair<'_, Rule>) {
+    let mut pair = pair.into_inner();
+    let mut current = pair.next();
+    let mut next = pair.next();
+    while let Some(i) = current {
+        for tab in tabs.iter() {
+            if *tab {
+                print!("│   ");
+            } else {
+                print!("    ");
+            }
+        }
+        if next.is_some() {
+            print!("├── ");
+            tabs.push(true);
+        } else {
+            print!("└── ");
+            tabs.push(false);
+        }
+        println!("{:?}", i.as_rule());
+
+        dfs(tabs, i);
+        tabs.pop();
+
+        current = next;
+        next = pair.next();
+    }
+}
+
+/// print the parse tree, like command tree's style
+pub fn parse_tree_visable(parse_tree: Pair<'_, Rule>) {
+    dfs(&mut vec![], parse_tree);
+}
 
 #[cfg(test)]
 mod test_parse {
-    use pest::iterators::Pair;
+    // use pest::iterators::Pair;
     use pest::Parser;
     use std::fs::File;
     use std::io::Read;
 
-    fn dfs(tab: usize, pair: Pair<'_, super::Rule>) {
-        for _ in 0..tab {
-            print!("  ");
-        }
-        println!("{:?}", pair.as_rule());
-        for i in pair.into_inner() {
-            dfs(tab + 1, i);
-        }
-    }
     #[test]
     fn parse_tree_test() {
         let mut f = File::open("test/test.c").unwrap();
@@ -403,10 +427,7 @@ mod test_parse {
             .next()
             .unwrap();
         assert_eq!(root.as_rule(), super::Rule::program);
-
-        // println!("{:?}", pairs.as_span());
-
-        dfs(0, root);
+        super::parse_tree_visable(root);
     }
     #[test]
     fn ast_test() {

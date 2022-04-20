@@ -121,7 +121,7 @@ impl<'ctx> CodeBuilder<'ctx> {
         let v = self
             .module
             .add_global(type_.to_llvm_basic_type(&self.context), None, name);
-
+        v.set_initializer(&self.context.i32_type().const_int(0, false));
         self.global_variables
             .insert(name.to_string(), (type_.clone(), v.as_pointer_value()));
         Ok(())
