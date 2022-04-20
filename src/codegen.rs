@@ -4,7 +4,7 @@ use either::Either;
 use inkwell::{
     builder::Builder,
     context::Context,
-    module::Module,
+    module::{Linkage, Module},
     targets::{CodeModel, FileType, InitializationConfig, RelocMode, Target, TargetMachine},
     types::{BasicMetadataTypeEnum, BasicType},
     values::{BasicValue, BasicValueEnum, FunctionValue, PointerValue},
@@ -102,6 +102,23 @@ impl<'ctx> CodeBuilder<'ctx> {
     }
 
     fn generate(&mut self, ast: &Vec<AST>) -> Result<()> {
+        let input = self.context.i32_type().fn_type(&[], false);
+        let input = self
+            .module
+            .add_function("input", input, Some(Linkage::External));
+        self.global_functions
+            .insert("input".to_string(), (Type::Int, input));
+
+        let output = self
+            .context
+            .void_type()
+            .fn_type(&[self.context.i32_type().into()], false);
+        let output = self
+            .module
+            .add_function("output", output, Some(Linkage::External));
+        self.global_functions
+            .insert("output".to_string(), (Type::Void, output));
+
         for i in ast {
             match i {
                 AST::FunctionDec(type_, name, params, body) => {
