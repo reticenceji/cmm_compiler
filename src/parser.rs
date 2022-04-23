@@ -61,6 +61,17 @@ pub enum Type {
     IntPtr,
 }
 
+impl ToString for Type {
+    fn to_string(&self) -> String {
+        match self {
+            Self::Int => "int".to_string(),
+            Self::Void => "void".to_string(),
+            Self::IntArray(size) => format!("int array[{}]", size),
+            Self::IntPtr => "int pointer".to_string()
+        }
+    }
+}
+
 impl<'ctx> Type {
     pub fn to_llvm_basic_type(&self, context: &'ctx Context) -> BasicTypeEnum<'ctx> {
         match self {
