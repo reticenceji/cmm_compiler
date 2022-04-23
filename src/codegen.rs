@@ -19,15 +19,15 @@ enum CodeGenErr {
     VariableRedefinition,
     #[error("Index of array should be integer")]
     IndexNotInt,
-    #[error("Variable has not defined")]
+    #[error("Variable has not been defined")]
     VariableNotDefined,
     #[error("Function redefinition")]
     FunctionRedefinition,
     #[error("Mismatched type")]
     MismatchedType,
-    #[error("Mismatch type of Function's return type")]
+    #[error("Mismatched type of Function's return type")]
     MismatchedTypeFunction,
-    #[error("Function is not defined")]
+    #[error("Function has not been defined")]
     FunctionNotDefined,
     #[error("Expression has void type")]
     ExpressionVoidType,
@@ -36,9 +36,13 @@ enum CodeGenErr {
 pub struct CodeBuilder<'ctx> {
     /// A Context is a container for all LLVM entities including Modules.
     context: &'ctx Context,
-    /// llvm `Module`: Each module directly contains a list of globals variables, a list of functions, a list of libraries (or other modules) this module depends on, a symbol table, and various data about the target's characteristics.
+    /// llvm `Module`: Each module directly contains a list of globals variables, 
+    /// a list of functions, a list of libraries (or other modules) this module depends on, 
+    /// a symbol table, and various data about the target's characteristics.
     module: Module<'ctx>,
-    /// his provides a uniform API for creating instructions and inserting them into a basic block: either at the end of a BasicBlock, or at a specific iterator location in a block.
+    /// This provides a uniform API for creating instructions and inserting 
+    /// them into a basic block: either at the end of a BasicBlock, 
+    /// or at a specific iterator location in a block.
     builder: Builder<'ctx>,
 
     global_variables: HashMap<String, (Type, PointerValue<'ctx>)>,
@@ -69,6 +73,7 @@ impl<'ctx> CodeBuilder<'ctx> {
         codegen.generate(ast)?;
         Ok(codegen)
     }
+    
     /// Build llvm-ir assembly file
     pub fn build_llvmir(&self, path: &Path) {
         self.module.print_to_file(path).unwrap();
@@ -143,6 +148,7 @@ impl<'ctx> CodeBuilder<'ctx> {
             .insert(name.to_string(), (type_.clone(), v.as_pointer_value()));
         Ok(())
     }
+
     fn gen_function(
         &mut self,
         type_: &Type,
@@ -345,6 +351,7 @@ impl<'ctx> CodeBuilder<'ctx> {
             }
         }
     }
+
     fn gen_binary_expr(
         &self,
         op: &Oprand,
@@ -397,6 +404,7 @@ impl<'ctx> CodeBuilder<'ctx> {
 
         Ok((Type::Int, value))
     }
+
     fn gen_function_call(&self, name: &str, argments: &Vec<AST>) -> Result<(Type, BasicValueEnum)> {
         let mut args = Vec::new();
         for argment in argments {
@@ -427,6 +435,7 @@ impl<'ctx> CodeBuilder<'ctx> {
             None => Err(CodeGenErr::FunctionNotDefined)?,
         }
     }
+
     fn gen_assinment_expr(&self, var: &AST, expr: &AST) -> Result<(Type, BasicValueEnum)> {
         if let AST::Variable(name, index) = var {
             let (type_left, ptr) = self.gen_variable(name, &index.as_ref().map(|x| x.as_ref()))?;
@@ -501,6 +510,7 @@ mod test_parse {
         let mut f = File::open("test/test.c").unwrap();
         let mut buf = String::new();
         f.read_to_string(&mut buf).unwrap();
+        
         let ast = super::AST::parse(buf);
         let context = Context::create();
         let codegen = CodeBuilder::new(&context, "test", &ast).unwrap();

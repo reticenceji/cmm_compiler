@@ -3,12 +3,14 @@ use inkwell::{
     types::{BasicMetadataTypeEnum, BasicType, BasicTypeEnum},
 };
 use pest::{iterators::Pair, Parser};
+use serde::Serialize;
 use std::borrow::Borrow;
+use sugars::boxed;
+
 #[derive(Parser)]
 #[grammar = "grammar.pest"]
 pub struct CParser;
-use serde::Serialize;
-use sugars::boxed;
+
 #[derive(Debug, Serialize)]
 pub enum AST {
     /// type, name, params, block_statements: type name(params) {statements}
@@ -36,6 +38,7 @@ pub enum AST {
     Variable(String, Option<Box<AST>>),
     IntLiteral(i32),
 }
+
 #[derive(Debug, Serialize)]
 pub enum Oprand {
     Add,
@@ -49,6 +52,7 @@ pub enum Oprand {
     Eq,
     Ne,
 }
+
 #[derive(Debug, Serialize, PartialEq, Eq, Clone, Copy)]
 pub enum Type {
     Int,
@@ -56,6 +60,7 @@ pub enum Type {
     IntArray(usize),
     IntPtr,
 }
+
 impl<'ctx> Type {
     pub fn to_llvm_basic_type(&self, context: &'ctx Context) -> BasicTypeEnum<'ctx> {
         match self {
@@ -71,6 +76,7 @@ impl<'ctx> Type {
                 .as_basic_type_enum(),
         }
     }
+
     pub fn to_llvm_basic_metadata_type(
         &self,
         context: &'ctx Context,
@@ -128,6 +134,7 @@ fn visit_func_declaration(pair: Pair<'_, Rule>, ast: &mut Vec<AST>) {
 
     ast.push(AST::FunctionDec(type_spec, id, params, boxed!(block_stmt)));
 }
+
 fn visit_var_declaration(pair: Pair<'_, Rule>, ast: &mut Vec<AST>) {
     let mut children = pair.into_inner();
     let mut type_spec = visit_type_spec(children.next().unwrap());
@@ -167,6 +174,7 @@ fn visit_type_spec(pair: Pair<'_, Rule>) -> Type {
 fn visit_id(pair: Pair<'_, Rule>) -> String {
     pair.as_str().to_string()
 }
+
 fn visit_params(pair: Pair<'_, Rule>) -> Vec<(Type, String)> {
     let mut params = vec![];
     for node in pair.into_inner() {
@@ -176,6 +184,7 @@ fn visit_params(pair: Pair<'_, Rule>) -> Vec<(Type, String)> {
     }
     params
 }
+
 fn visit_param(pair: Pair<'_, Rule>) -> (Type, String) {
     let mut children = pair.into_inner();
     let mut type_spec = visit_type_spec(children.next().unwrap());
@@ -198,6 +207,7 @@ fn visit_block_stmt(pair: Pair<'_, Rule>) -> AST {
     }
     AST::BlockStmt(vars, statements)
 }
+
 fn visit_statement(pair: Pair<'_, Rule>, ast: &mut Vec<AST>) {
     let children = pair.into_inner().next().unwrap();
     match children.as_rule() {
@@ -341,6 +351,7 @@ fn visit_assignment_expr(pair: Pair<'_, Rule>) -> AST {
     let expression = visit_expression(children.next().unwrap());
     AST::AssignmentExpr(boxed!(var), boxed!(expression))
 }
+
 fn visit_var(pair: Pair<'_, Rule>) -> AST {
     let mut children = pair.into_inner();
     let id = children.next().unwrap().as_str().to_string();
@@ -352,6 +363,7 @@ fn visit_var(pair: Pair<'_, Rule>) -> AST {
     }
     AST::Variable(id, expression)
 }
+
 fn visit_binary_expr(pair: Pair<'_, Rule>) -> AST {
     let mut children = pair.into_inner();
     let mut lhs = visit_expression(children.next().unwrap());
@@ -376,6 +388,7 @@ fn visit_binary_expr(pair: Pair<'_, Rule>) -> AST {
     }
     lhs
 }
+
 fn dfs(tabs: &mut Vec<bool>, pair: Pair<'_, Rule>) {
     let mut pair = pair.into_inner();
     let mut current = pair.next();

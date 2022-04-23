@@ -123,6 +123,7 @@ dependencies = [
  "clap",
  "either",
  "inkwell",
+ "lazy_static",
  "pest",
  "pest_derive",
  "serde",

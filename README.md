@@ -34,6 +34,9 @@ clang io.c test.s
 
 ## 测试
 
+## AST 可视化
+使用 [Graphviz](http://graphviz.org) 对 AST 进行可视化。
+
 ## TODO
 
 - [ ] `input`和 `output`函数。
