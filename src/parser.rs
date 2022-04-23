@@ -67,7 +67,7 @@ impl ToString for Type {
             Self::Int => "int".to_string(),
             Self::Void => "void".to_string(),
             Self::IntArray(size) => format!("int array[{}]", size),
-            Self::IntPtr => "int pointer".to_string()
+            Self::IntPtr => "int pointer".to_string(),
         }
     }
 }

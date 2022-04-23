@@ -1,11 +1,10 @@
 //! Abstract Syntax Tree Visualizer
-use std::sync::Mutex;
-
 use crate::parser::AST;
 use lazy_static::lazy_static;
+use std::sync::Mutex;
 
 #[derive(Debug)]
-struct DiGraph {
+pub struct DiGraph {
     name: Option<String>,
     id: usize,
     conts: Vec<Content>,
@@ -172,7 +171,7 @@ impl DiGraph {
                 }
 
                 let subg = DiGraph::from_ast(ast);
-                let node = Node::new_subg(subg); 
+                let node = Node::new_subg(subg);
                 self.add_cont(Content::Edge(Edge::new(&self, &node)));
                 self.add_cont(Content::Node(node));
             }
@@ -204,14 +203,94 @@ impl DiGraph {
                     self.add_cont(Content::Node(node));
                 }
             }
-            AST::SelectionStmt(box ast1, box ast2, ast3) => {}
-            AST::IterationStmt(box ast1, box ast2) => {}
-            AST::ReturnStmt(ast) => {}
-            AST::AssignmentExpr(box ast1, box ast2) => {}
+            AST::SelectionStmt(box ast1, box ast2, ast3) => {
+                self.name = Some("SelectionStmt".to_string());
+
+                // If {cond} {expr}
+                let if_node = Node::new_symbol("if");
+                let cond_node = Node::Subgraph(DiGraph::from_ast(ast1));
+                let true_node = Node::Subgraph(DiGraph::from_ast(ast2));
+
+                self.add_cont(Content::Edge(Edge::new(&self, &if_node)));
+                self.add_cont(Content::Edge(Edge::new(&self, &cond_node)));
+                self.add_cont(Content::Edge(Edge::new(&self, &true_node)));
+                self.add_cont(Content::Node(if_node));
+                self.add_cont(Content::Node(cond_node));
+                self.add_cont(Content::Node(true_node));
+
+                // Else {expr}
+                if let Some(box ast) = ast3 {
+                    let else_node = Node::new_symbol("else");
+                    let false_node = Node::Subgraph(DiGraph::from_ast(ast));
+
+                    self.add_cont(Content::Edge(Edge::new(&self, &else_node)));
+                    self.add_cont(Content::Edge(Edge::new(&self, &false_node)));
+                    self.add_cont(Content::Node(else_node));
+                    self.add_cont(Content::Node(false_node));
+                }
+            }
+            AST::IterationStmt(box ast1, box ast2) => {
+                self.name = Some("IterationStmt".to_string());
+
+                let while_node = Node::new_symbol("while");
+                let cond_node = Node::new_subg(DiGraph::from_ast(ast1));
+                let expr_node = Node::new_subg(DiGraph::from_ast(ast2));
+
+                self.add_cont(Content::Edge(Edge::new(&self, &while_node)));
+                self.add_cont(Content::Edge(Edge::new(&self, &cond_node)));
+                self.add_cont(Content::Edge(Edge::new(&self, &expr_node)));
+                self.add_cont(Content::Node(while_node));
+                self.add_cont(Content::Node(cond_node));
+                self.add_cont(Content::Node(expr_node));
+            }
+            AST::ReturnStmt(ast) => {
+                self.name = Some("ReturnStmt".to_string());
+
+                let return_node = Node::new_symbol("return");
+
+                self.add_cont(Content::Edge(Edge::new(&self, &return_node)));
+                self.add_cont(Content::Node(return_node));
+
+                if let Some(box ast) = ast {
+                    let retval_node = Node::new_subg(DiGraph::from_ast(ast));
+
+                    self.add_cont(Content::Edge(Edge::new(&self, &retval_node)));
+                    self.add_cont(Content::Node(retval_node));
+                }
+            }
+            AST::AssignmentExpr(box ast1, box ast2) => {
+                self.name = Some("AssignmentExpr".to_string());
+
+                let var_node = Node::new_subg(DiGraph::from_ast(ast1));
+                let equal_node = Node::new_symbol("=");
+                let expr_node = Node::new_subg(DiGraph::from_ast(ast2));
+
+                self.add_cont(Content::Edge(Edge::new(&self, &var_node)));
+                self.add_cont(Content::Edge(Edge::new(&self, &equal_node)));
+                self.add_cont(Content::Edge(Edge::new(&self, &expr_node)));
+                self.add_cont(Content::Node(var_node));
+                self.add_cont(Content::Node(equal_node));
+                self.add_cont(Content::Node(expr_node));
+            }
             AST::BinaryExpr(oprand, box ast1, box ast2) => {}
             AST::CallExpr(name, ast) => {}
-            AST::Variable(name, ast) => {}
-            AST::IntLiteral(val) => {}
+            AST::Variable(name, ast) => {
+                self.name = Some("Variable".to_string());
+                
+                let name_node = Node::new_symbol(name);
+
+                self.add_cont(Content::Edge(Edge::new(&self, &name_node)));
+                self.add_cont(Content::Node(name_node));
+
+            }
+            AST::IntLiteral(val) => {
+                self.name = Some("IntLiteral".to_string());
+
+                let int_node = Node::new_symbol(&val.to_string());
+
+                self.add_cont(Content::Edge(Edge::new(&self, &int_node)));
+                self.add_cont(Content::Node(int_node));
+            }
         }
     }
 

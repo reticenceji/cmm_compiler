@@ -11,7 +11,7 @@ cargo build --release
 To run
 
 ```shell
-./cmm --file xxx.c
+./cmm --file <source file>
 ```
 
 Then compile the .s file with your local compiler, such as
@@ -36,6 +36,23 @@ clang io.c test.s
 
 ## AST 可视化
 使用 [Graphviz](http://graphviz.org) 对 AST 进行可视化。
+
+生成 dot 文件：
+```shell
+cmm --file <soruce file> --dotfile <dot file>
+```
+
+从 dot 文件生成 png 图片：
+```shell
+dot <dotfile> -T png -o dot.png
+```
+
+例如，生成 [test.c](test/test.c) 的 ast 可视化文件：
+```shell
+cmm --file test/test.c --dotfile ./dotfile
+dot dotfile -T png -o dot.png
+```
+![](dot.png)
 
 ## TODO
 
