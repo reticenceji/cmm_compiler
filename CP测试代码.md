@@ -7,7 +7,7 @@
 ID为字母的组合，num为数字的组合，注释为`/*...*/`的形式
 
 ```c
-void main(void){
+void main(){
     int abc;
     int def[10];
     /*
@@ -21,7 +21,7 @@ void main(void){
 语句间的空白字符
 
 ```c
-void main(void){
+void main(){
     int abc ;int def[10] ;
     /*
     This is a test code
@@ -38,7 +38,7 @@ void main(void){
 1. ID中包含数字
 
    ```c
-   void main(void){
+   void main(){
        int a1;
        int 1b;
    }
@@ -51,7 +51,7 @@ void main(void){
 2. ID中包含非字母或数字的情况
 
    ```c
-   void main(void){
+   void main(){
        int a_;
        int b[;
    }
@@ -64,7 +64,7 @@ void main(void){
 3. 程序中出现未定义的字符
 
    ```c
-   void main(void){
+   void main(){
        int a;
        int a = b ^ 6;
        int c;
@@ -79,7 +79,7 @@ void main(void){
 4. 采用`\\`注释的形式
 
    ```c
-   void main(void){
+   void main(){
        int a=20;//I thought this is a comment
    }
    ```
@@ -91,7 +91,7 @@ void main(void){
 5. num中出现非数字的字符
 
    ```c
-   void main(void){
+   void main(){
        int a;
        a = -2!0;
    }
@@ -104,7 +104,7 @@ void main(void){
 6. 关键字写错
 
    ```c
-   void main(void){
+   void main(){
        intt a;
        return_ ;
    }
@@ -121,7 +121,7 @@ void main(void){
 函数返回类型为void
 
 ```c
-void main(void){
+void main(){
     return ;
 }
 ```
@@ -129,7 +129,7 @@ void main(void){
 函数返回类型为int
 
 ```c
-int main(void){
+int main(){
     return 0;
 }
 ```
@@ -149,7 +149,7 @@ int sub(int a,int b){
     */
     return a-b;
 }
-int main(void){
+int main(){
     int x;
     int y;
     x = 10;
@@ -175,7 +175,7 @@ int add(int a,int b){
     */
 }
 int b[20];
-int main(void){
+int main(){
     a=10;
     int c;
     c=6;
@@ -193,7 +193,7 @@ int gcd(int u, int v)
     else
         return gcd(u, u-u/v*v);
 }
-void main(void)
+void main()
 {
     int x;
     int y;
@@ -218,7 +218,7 @@ int array(int a[], int n)
     }
     return sum;
 }
-void main(void){
+void main(){
     int a[10];
     int b;
     array(a,b);
@@ -229,22 +229,10 @@ void main(void){
 
 **错误情况**
 
-1. 函数定义参数列表为空
+1. 给变量赋值负数
 
    ```c
    void main(){
-       return ;
-   }
-   ```
-
-   预期情况：
-
-   
-
-2. 给变量赋值负数
-
-   ```c
-   void main(void){
        int a;
        a= -10;
    }
@@ -254,7 +242,7 @@ void main(void){
 
    
 
-3. 预算符未按正常位置排放
+2. 预算符未按正常位置排放
 
    ```c
    void main(){
@@ -267,10 +255,10 @@ void main(void){
 
    
 
-4. 缺少分号
+3. 缺少分号
 
    ```c
-   void main(void)
+   void main()
    {
        int x
        int y
@@ -281,7 +269,7 @@ void main(void){
 
    
 
-5. if语句格式不符
+4. if语句格式不符
 
    ```c
    int gcd(int u, int v)
@@ -292,7 +280,7 @@ void main(void){
        else
            return gcd(u, u-u/v*v);
    }
-   void main(void)
+   void main()
    {
        int x;
        int y;
@@ -320,7 +308,7 @@ void main(void){
 
    
 
-6. while语句格式不符
+5. while语句格式不符
 
    ```c
    int array(int a[], int n)
@@ -335,7 +323,7 @@ void main(void){
        }
        return sum;
    }
-   void main(void){
+   void main(){
        int a[10];
        int b;
        array(a,b);
@@ -346,10 +334,10 @@ void main(void){
 
    
 
-7. 括号未匹配
+6. 括号未匹配
 
    ```c
-   void main(void){
+   void main(){
        int a[10;
    }
    ```
@@ -358,9 +346,40 @@ void main(void){
 
    
 
-5. 
+7. 
 
 ## 语义分析相关
+
+**正确情况**
+
+```c
+void inc(void)
+{
+    int i;
+    i = i + 1;
+    return;
+}
+
+int main()
+{
+    int x[5];
+    x[0] = 5;
+    return 0;
+}
+```
+
+
+
+```c
+int main()
+{
+    int i;
+    i = 5;
+    return i;
+}
+```
+
+**错误情况**
 
 变量未定义
 
@@ -371,7 +390,7 @@ int inc(void)
     i = i + 1;
     return j;
 }
-void main(void){
+void main(){
     
 }
 ```
@@ -387,7 +406,7 @@ int inc(void)
     i = i + 1;
     return i;
 }
-void main(void){
+void main(){
     
 }
 ```
@@ -406,7 +425,7 @@ int inc(void)
     i = i + 1;
     return i;
 }
-void main(void){
+void main(){
     
 }
 ```
@@ -429,7 +448,7 @@ int inc(int i)
 {
     return i + 1;
 }
-void main(void){
+void main(){
     
 }
 ```
@@ -446,7 +465,7 @@ void inc(int i)
     i = i + 1;
     return i;
 }
-void main(void){
+void main(){
     
 }
 ```
@@ -459,7 +478,7 @@ int inc(int i)
     i = i + 1;
     return;
 }
-void main(void){
+void main(){
     
 }
 ```
@@ -476,7 +495,7 @@ int inc(int i)
     int a[10];
     return a(5);
 }
-void main(void){
+void main(){
     
 }
 ```
@@ -495,7 +514,7 @@ int inc(void)
     return i;
 }
 
-int main(void)
+int main()
 {
     int x;
     x = inc(x);
@@ -517,7 +536,7 @@ int inc(void)
     return i;
 }
 
-int main(void)
+int main()
 {
     int x[5];
     x = inc(x);
@@ -525,34 +544,4 @@ int main(void)
 }
 ```
 
-
-
-
-
-```c
-void inc(void)
-{
-    int i;
-    i = i + 1;
-    return;
-}
-
-int main(void)
-{
-    int x[5];
-    x[0] = 5;
-    return 0;
-}
-```
-
-
-
-```c
-int main(void)
-{
-    int i;
-    i = 5;
-    return i;
-}
-```
 
