@@ -36,12 +36,12 @@ enum CodeGenErr {
 pub struct CodeBuilder<'ctx> {
     /// A Context is a container for all LLVM entities including Modules.
     context: &'ctx Context,
-    /// llvm `Module`: Each module directly contains a list of globals variables, 
-    /// a list of functions, a list of libraries (or other modules) this module depends on, 
+    /// llvm `Module`: Each module directly contains a list of globals variables,
+    /// a list of functions, a list of libraries (or other modules) this module depends on,
     /// a symbol table, and various data about the target's characteristics.
     module: Module<'ctx>,
-    /// This provides a uniform API for creating instructions and inserting 
-    /// them into a basic block: either at the end of a BasicBlock, 
+    /// This provides a uniform API for creating instructions and inserting
+    /// them into a basic block: either at the end of a BasicBlock,
     /// or at a specific iterator location in a block.
     builder: Builder<'ctx>,
 
@@ -73,7 +73,7 @@ impl<'ctx> CodeBuilder<'ctx> {
         codegen.generate(ast)?;
         Ok(codegen)
     }
-    
+
     /// Build llvm-ir assembly file
     pub fn build_llvmir(&self, path: &Path) {
         self.module.print_to_file(path).unwrap();
@@ -159,6 +159,7 @@ impl<'ctx> CodeBuilder<'ctx> {
         if self.global_variables.contains_key(name) || self.global_functions.contains_key(name) {
             Err(CodeGenErr::FunctionRedefinition)?
         }
+
         let param_types: Vec<BasicMetadataTypeEnum<'ctx>> = params
             .iter()
             .map(|(param_type, _)| param_type.to_llvm_basic_metadata_type(self.context))
@@ -171,10 +172,26 @@ impl<'ctx> CodeBuilder<'ctx> {
         };
 
         let function = self.module.add_function(name, ty, None);
+        let basic_block = self.context.append_basic_block(function, "entry");
+
+        let mut p = HashMap::new();
+        for (index, arg) in function.get_param_iter().enumerate() {
+            // get param name
+            let (arg_type, arg_name) = &params[index];
+            // set param name
+            arg.set_name(arg_name);
+
+            self.builder.position_at_end(basic_block);
+
+            // alloc variable on stack
+            let ptr = self
+                .builder
+                .build_alloca(arg_type.to_llvm_basic_type(self.context), &arg_name);
+            p.insert(arg_name.clone(), (*arg_type, ptr));
+        }
+        self.current_variables.push(p);
         self.current_function = Some((*type_, function));
-        let basic_block = self
-            .context
-            .append_basic_block(self.current_function.unwrap().1, "entry");
+
         self.builder.position_at_end(basic_block);
         self.gen_block_stmt(body)?;
         if self.no_terminator() {
@@ -183,6 +200,7 @@ impl<'ctx> CodeBuilder<'ctx> {
 
         self.global_functions
             .insert(name.to_string(), (*type_, function));
+        self.current_variables.pop();
         Ok(())
     }
 
@@ -499,21 +517,35 @@ impl<'ctx> CodeBuilder<'ctx> {
 
 #[cfg(test)]
 mod test_parse {
-    use std::{fs::File, io::Read, path::Path};
+    use std::{
+        fs::{self, File},
+        io::Read,
+        path::Path,
+    };
 
     use inkwell::context::Context;
 
     use super::CodeBuilder;
 
     #[test]
-    fn codegen_test() {
-        let mut f = File::open("test/test.c").unwrap();
-        let mut buf = String::new();
-        f.read_to_string(&mut buf).unwrap();
-        
-        let ast = super::AST::parse(buf);
-        let context = Context::create();
-        let codegen = CodeBuilder::new(&context, "test", &ast).unwrap();
-        codegen.build_asm(Path::new("test.asm"));
+    fn codegen_ok_test() {
+        let ok_path = Path::new("test/");
+        for source in fs::read_dir(ok_path).unwrap() {
+            let source = source.unwrap();
+            if source.file_type().unwrap().is_file() {
+                let mut file = File::open(source.path()).unwrap();
+
+                println!("Test source code file {:?}", source);
+                let mut buf = String::new();
+                file.read_to_string(&mut buf).unwrap();
+
+                let ast = super::AST::parse(buf);
+                let context = Context::create();
+                let codegen =
+                    CodeBuilder::new(&context, "test", &ast).expect("Source code file test failed");
+                // codegen.build_asm(Path::new("test.asm"));
+                codegen.build_llvmir(Path::new("test.ll"));
+            }
+        }
     }
 }
