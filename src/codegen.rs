@@ -172,6 +172,8 @@ impl<'ctx> CodeBuilder<'ctx> {
         };
 
         let function = self.module.add_function(name, ty, None);
+        self.global_functions
+            .insert(name.to_string(), (*type_, function));
         let basic_block = self.context.append_basic_block(function, "entry");
 
         let mut p = HashMap::new();
@@ -198,8 +200,6 @@ impl<'ctx> CodeBuilder<'ctx> {
             self.builder.build_return(None);
         }
 
-        self.global_functions
-            .insert(name.to_string(), (*type_, function));
         self.current_variables.pop();
         Ok(())
     }
@@ -518,21 +518,23 @@ impl<'ctx> CodeBuilder<'ctx> {
 #[cfg(test)]
 mod test_parse {
     use std::{
+        ffi::OsStr,
         fs::{self, File},
         io::Read,
-        path::Path,
+        os::unix::prelude::OsStringExt,
+        path::{Path, PathBuf},
     };
 
     use inkwell::context::Context;
 
     use super::CodeBuilder;
 
-    #[test]
-    fn codegen_ok_test() {
-        let ok_path = Path::new("test/");
+    fn codegen_ok_test(ok_path: &Path) {
         for source in fs::read_dir(ok_path).unwrap() {
             let source = source.unwrap();
-            if source.file_type().unwrap().is_file() {
+            if source.file_type().unwrap().is_file()
+                && source.file_name().into_vec().ends_with(b".c")
+            {
                 let mut file = File::open(source.path()).unwrap();
 
                 println!("Test source code file {:?}", source);
@@ -543,9 +545,14 @@ mod test_parse {
                 let context = Context::create();
                 let codegen =
                     CodeBuilder::new(&context, "test", &ast).expect("Source code file test failed");
-                // codegen.build_asm(Path::new("test.asm"));
                 codegen.build_llvmir(Path::new("test.ll"));
             }
         }
+    }
+
+    #[test]
+    fn codegen_test() {
+        codegen_ok_test(Path::new("test/algorithm/"));
+        codegen_ok_test(Path::new("test/ok/"));
     }
 }
