@@ -83,7 +83,8 @@ impl<'ctx> Type {
                 .as_basic_type_enum(),
             Type::IntPtr => context
                 .i32_type()
-                .ptr_type(inkwell::AddressSpace::Generic)
+                .array_type(0)
+                // TODO check its correctness .ptr_type(inkwell::AddressSpace::Generic)
                 .as_basic_type_enum(),
         }
     }

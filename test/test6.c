@@ -1,18 +1,20 @@
 int a;
-int gcd(int a,int b){
-    if(b==0) return a;
-    else return gcd(b,a-a/b*b);
+int gcd(int a, int b) {
+    if (b == 0)
+        return a;
+    else
+        return gcd(b, a - a / b * b);
     /*a-a/b*b == a mod b*/
 }
-int add(int a,int b){
-    return a+b;
+int add(int a, int b) {
+    return a + b;
     /*
-    	add
+        add
     */
 }
 int b[20];
-int main(){
-    a=10;
+int main() {
     int c;
-    c=6;
+    a = 10;
+    c = 6;
 }

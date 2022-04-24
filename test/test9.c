@@ -1,12 +1,10 @@
-void inc(void)
-{
+void inc() {
     int i;
     i = i + 1;
     return;
 }
 
-int main()
-{
+int main() {
     int x[5];
     x[0] = 5;
     return 0;
