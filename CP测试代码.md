@@ -371,18 +371,24 @@ int inc(void)
     i = i + 1;
     return j;
 }
+void main(void){
+    
+}
 ```
 
 
 
 变量定义错误
 
-```
+```c
 int inc(void)
 {
     void i;
     i = i + 1;
     return i;
+}
+void main(void){
+    
 }
 ```
 
@@ -399,6 +405,9 @@ int inc(void)
     int i[5];
     i = i + 1;
     return i;
+}
+void main(void){
+    
 }
 ```
 
@@ -420,6 +429,9 @@ int inc(int i)
 {
     return i + 1;
 }
+void main(void){
+    
+}
 ```
 
 
@@ -434,6 +446,9 @@ void inc(int i)
     i = i + 1;
     return i;
 }
+void main(void){
+    
+}
 ```
 
 
@@ -443,6 +458,9 @@ int inc(int i)
 {
     i = i + 1;
     return;
+}
+void main(void){
+    
 }
 ```
 
@@ -457,6 +475,9 @@ int inc(int i)
 {
     int a[10];
     return a(5);
+}
+void main(void){
+    
 }
 ```
 
@@ -508,7 +529,7 @@ int main(void)
 
 
 
-```
+```c
 void inc(void)
 {
     int i;
