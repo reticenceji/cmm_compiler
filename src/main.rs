@@ -60,5 +60,5 @@ fn main() {
     codegen.build_asm(Path::new(&format!("{}.s", prefix)));
     codegen.build_llvmir(Path::new(&format!("{}.ll", prefix)));
 
-    println!("{:?}", serde_json::to_string(&ast));
+    // println!("{:?}", serde_json::to_string(&ast));
 }
