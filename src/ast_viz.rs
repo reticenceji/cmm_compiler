@@ -276,12 +276,11 @@ impl DiGraph {
             AST::CallExpr(name, ast) => {}
             AST::Variable(name, ast) => {
                 self.name = Some("Variable".to_string());
-                
+
                 let name_node = Node::new_symbol(name);
 
                 self.add_cont(Content::Edge(Edge::new(&self, &name_node)));
                 self.add_cont(Content::Node(name_node));
-
             }
             AST::IntLiteral(val) => {
                 self.name = Some("IntLiteral".to_string());
@@ -331,7 +330,7 @@ lazy_static! {
 fn test_ast() {
     use crate::parser::AST;
     use std::{fs::File, io::Read};
-    let file = "test/test_ast.c";
+    let file = "test/ok/test_ast.c";
     let mut source_file = File::open(file).expect("Unable to open source file!");
     let mut source_code = String::new();
 

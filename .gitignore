@@ -1,2 +1,5 @@
 /target
 /tmp
+/.vs
+/.history
+.vscode/settings.json
