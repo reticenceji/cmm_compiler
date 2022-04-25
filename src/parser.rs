@@ -83,8 +83,8 @@ impl<'ctx> Type {
                 .as_basic_type_enum(),
             Type::IntPtr => context
                 .i32_type()
-                .array_type(0)
-                // TODO check its correctness .ptr_type(inkwell::AddressSpace::Generic)
+                // .array_type(0)
+                .ptr_type(inkwell::AddressSpace::Generic)
                 .as_basic_type_enum(),
         }
     }
@@ -99,7 +99,9 @@ impl<'ctx> Type {
             Type::IntArray(size) => {
                 BasicMetadataTypeEnum::ArrayType(context.i32_type().array_type(*size as u32))
             }
-            Type::IntPtr => BasicMetadataTypeEnum::ArrayType(context.i32_type().array_type(0)),
+            Type::IntPtr => BasicMetadataTypeEnum::PointerType(
+                context.i32_type().ptr_type(inkwell::AddressSpace::Generic),
+            ),
         }
     }
 }
