@@ -15,7 +15,7 @@ statement = {expression_stmt | selection_stmt | iteration_stmt | return_stmt | b
     expression_stmt = {(expression ~ ";") | ";"}
     selection_stmt = {("if" ~ "(" ~ expression ~ ")" ~ statement ~ ("else" ~ statement)?)}
     iteration_stmt = {"while" ~ "(" ~ expression ~ ")" ~ statement}
-    return_stmt = {("return" ~ expression ~ ";") | ("return" ~ ";")}
+    return_stmt = {("return" ~ ";") | ("return" ~ expression ~ ";")}
         
 expression = {assignment_expr | equlity_expr}
 
@@ -30,7 +30,7 @@ var = {id ~ ("[" ~ expression ~ "]")?}
 bracket_expr = {"(" ~ expression ~")"}
 call_expr = {id ~ "(" ~ args ~ ")"}
 args = {expression? ~("," ~ expression)*}
-id = @{(ASCII_ALPHA | "_") ~ (ASCII_ALPHA | "_" | ASCII_DIGIT)*}
+id = @{!keyword ~ ((ASCII_ALPHA | "_") ~ (ASCII_ALPHA | "_" | ASCII_DIGIT)*)}
 
 // tokens
 // type token

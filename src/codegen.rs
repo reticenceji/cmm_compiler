@@ -45,11 +45,14 @@ pub struct CodeBuilder<'ctx> {
     /// or at a specific iterator location in a block.
     builder: Builder<'ctx>,
 
+    /// Global variables. Map variables' name to it's type and pointer.
     global_variables: HashMap<String, (Type, PointerValue<'ctx>)>,
-    // 代表 作用域
-    current_variables: Vec<HashMap<String, (Type, PointerValue<'ctx>)>>,
-    current_function: Option<(Type, FunctionValue<'ctx>)>,
+    /// Global functions.  Map functions' name to it's type and pointer.
     global_functions: HashMap<String, (Type, FunctionValue<'ctx>)>,
+    /// Local varibales. It represents the nesting of scopes.
+    variables_stack: Vec<HashMap<String, (Type, PointerValue<'ctx>)>>,
+    /// The function that code builder is generating.
+    current_function: Option<(Type, FunctionValue<'ctx>)>,
 }
 
 impl<'ctx> CodeBuilder<'ctx> {
@@ -65,7 +68,7 @@ impl<'ctx> CodeBuilder<'ctx> {
             module,
             builder,
             global_variables: HashMap::new(),
-            current_variables: Vec::new(),
+            variables_stack: Vec::new(),
             global_functions: HashMap::new(),
             current_function: None,
         };
@@ -178,9 +181,7 @@ impl<'ctx> CodeBuilder<'ctx> {
 
         let mut p = HashMap::new();
         for (index, arg) in function.get_param_iter().enumerate() {
-            // get param name
             let (arg_type, arg_name) = &params[index];
-            // set param name
             arg.set_name(arg_name);
 
             self.builder.position_at_end(basic_block);
@@ -188,10 +189,13 @@ impl<'ctx> CodeBuilder<'ctx> {
             // alloc variable on stack
             let ptr = self
                 .builder
-                .build_alloca(arg_type.to_llvm_basic_type(self.context), &arg_name);
+                .build_alloca(arg_type.to_llvm_basic_type(self.context), "");
+            self.builder
+                .build_store(ptr, function.get_nth_param(index as u32).unwrap());
+
             p.insert(arg_name.clone(), (*arg_type, ptr));
         }
-        self.current_variables.push(p);
+        self.variables_stack.push(p);
         self.current_function = Some((*type_, function));
 
         self.builder.position_at_end(basic_block);
@@ -200,142 +204,168 @@ impl<'ctx> CodeBuilder<'ctx> {
             self.builder.build_return(None);
         }
 
-        self.current_variables.pop();
+        self.variables_stack.pop();
         Ok(())
     }
 
     fn gen_block_stmt(&mut self, ast: &AST) -> Result<()> {
         if let AST::BlockStmt(variables, statements) = ast {
-            self.current_variables.push(HashMap::new());
+            self.variables_stack.push(HashMap::new());
             for var in variables {
                 if let AST::VariableDec(type_, name) = var {
-                    if self.current_variables.last().unwrap().contains_key(name) {
+                    if self.variables_stack.last().unwrap().contains_key(name) {
                         Err(CodeGenErr::VariableRedefinition)?
                     };
                     let v = self
                         .builder
                         .build_alloca(type_.to_llvm_basic_type(self.context), name);
-                    self.current_variables
-                        .last_mut()
-                        .unwrap()
-                        .insert(name.clone(), (type_.clone(), v));
+                    // 对于int a[len]这样的声明, 我们转换成int* a进行后续的使用.
+                    if let Type::IntArray(_) = type_ {
+                        let pv = self.builder.build_alloca(
+                            self.context
+                                .i32_type()
+                                .ptr_type(inkwell::AddressSpace::Generic),
+                            name,
+                        );
+                        let value = unsafe {
+                            self.builder.build_in_bounds_gep(
+                                v,
+                                &[
+                                    self.context.i32_type().const_int(0, false),
+                                    self.context.i32_type().const_int(0, false),
+                                ],
+                                name,
+                            )
+                        };
+                        self.builder.build_store(pv, value);
+                        self.variables_stack
+                            .last_mut()
+                            .unwrap()
+                            .insert(name.clone(), (Type::IntPtr, pv));
+                    } else {
+                        self.variables_stack
+                            .last_mut()
+                            .unwrap()
+                            .insert(name.clone(), (*type_, v));
+                    }
                 }
             }
 
             for stmt in statements {
-                match stmt {
-                    AST::BlockStmt(_, _) => self.gen_block_stmt(stmt)?,
-                    AST::SelectionStmt(cond, then_stmt, else_stmt) => {
-                        let comparison = self.gen_expression(cond)?.1.into_int_value();
-                        let comparison = self.builder.build_int_truncate(
-                            comparison,
-                            self.context.bool_type(),
-                            "condition",
-                        );
-                        let current_block = self.builder.get_insert_block().unwrap();
+                self.gen_statement(stmt)?;
+            }
+            self.variables_stack.pop();
+        }
+        Ok(())
+    }
+    fn gen_statement(&mut self, stmt: &AST) -> Result<()> {
+        match stmt {
+            AST::BlockStmt(_, _) => self.gen_block_stmt(stmt)?,
+            AST::SelectionStmt(cond, then_stmt, else_stmt) => {
+                let comparison = self.gen_expression(cond)?.1.into_int_value();
+                let comparison = self.builder.build_int_truncate(
+                    comparison,
+                    self.context.bool_type(),
+                    "condition",
+                );
+                let current_block = self.builder.get_insert_block().unwrap();
 
-                        let then_block = self
+                let then_block = self
+                    .context
+                    .insert_basic_block_after(current_block, "then_block");
+
+                let destination_block = self
+                    .context
+                    .insert_basic_block_after(then_block, "if_dest_block");
+                match else_stmt {
+                    Some(else_stmt) => {
+                        let else_block = self
                             .context
-                            .insert_basic_block_after(current_block, "then_block");
+                            .prepend_basic_block(destination_block, "else_block");
 
-                        let destination_block = self
-                            .context
-                            .insert_basic_block_after(then_block, "if_dest_block");
-                        match else_stmt {
-                            Some(else_stmt) => {
-                                let else_block = self
-                                    .context
-                                    .prepend_basic_block(destination_block, "else_block");
+                        self.builder
+                            .build_conditional_branch(comparison, then_block, else_block);
+                        self.builder.position_at_end(then_block);
+                        self.gen_statement(then_stmt)?;
+                        if self.no_terminator() {
+                            self.builder.build_unconditional_branch(destination_block);
+                        }
 
-                                self.builder
-                                    .build_conditional_branch(comparison, then_block, else_block);
-                                self.builder.position_at_end(then_block);
-                                self.gen_block_stmt(then_stmt)?;
-                                if self.no_terminator() {
-                                    self.builder.build_unconditional_branch(destination_block);
-                                }
-
-                                self.builder.position_at_end(else_block);
-                                self.gen_block_stmt(else_stmt)?;
-                                if self.no_terminator() {
-                                    self.builder.build_unconditional_branch(destination_block);
-                                }
-                            }
-                            None => {
-                                self.builder.build_conditional_branch(
-                                    comparison,
-                                    then_block,
-                                    destination_block,
-                                );
-                                self.builder.position_at_end(then_block);
-                                self.gen_block_stmt(then_stmt)?;
-                                if self.no_terminator() {
-                                    self.builder.build_unconditional_branch(destination_block);
-                                }
-                            }
-                        };
-
-                        self.builder.position_at_end(destination_block);
+                        self.builder.position_at_end(else_block);
+                        self.gen_statement(else_stmt)?;
+                        if self.no_terminator() {
+                            self.builder.build_unconditional_branch(destination_block);
+                        }
                     }
-                    AST::IterationStmt(cond, loop_stmt) => {
-                        let current_block = self.builder.get_insert_block().unwrap();
-                        let loop_head = self
-                            .context
-                            .insert_basic_block_after(current_block, "loop_head");
-                        self.builder.build_unconditional_branch(loop_head);
-
-                        let loop_body = self
-                            .context
-                            .insert_basic_block_after(loop_head, "loop_body");
-                        let destination_block = self
-                            .context
-                            .insert_basic_block_after(loop_body, "loop_dest_block");
-
-                        self.builder.position_at_end(loop_head);
-                        let comparison = self.gen_expression(cond)?.1.into_int_value();
-                        let comparison = self.builder.build_int_truncate(
-                            comparison,
-                            self.context.bool_type(),
-                            "condition",
-                        );
+                    None => {
                         self.builder.build_conditional_branch(
                             comparison,
-                            loop_body,
+                            then_block,
                             destination_block,
                         );
-
-                        self.builder.position_at_end(loop_body);
-                        self.gen_block_stmt(loop_stmt)?;
-                        self.builder.build_unconditional_branch(loop_head);
-
-                        self.builder.position_at_end(destination_block);
-                    }
-                    AST::ReturnStmt(ret_value) => match ret_value {
-                        Some(ast) => {
-                            let (type_, value) = self.gen_expression(ast)?;
-                            if type_ == self.current_function.unwrap().0 {
-                                self.builder.build_return(Some(&value));
-                            } else {
-                                Err(CodeGenErr::MismatchedTypeFunction)?
-                            }
+                        self.builder.position_at_end(then_block);
+                        self.gen_statement(then_stmt)?;
+                        if self.no_terminator() {
+                            self.builder.build_unconditional_branch(destination_block);
                         }
-                        None => {
-                            self.builder.build_return(None);
-                        }
-                    },
-                    AST::AssignmentExpr(var, expr) => {
-                        self.gen_assinment_expr(var, expr)?;
                     }
-                    AST::BinaryExpr(op, lhs, rhs) => {
-                        self.gen_binary_expr(op, lhs, rhs)?;
-                    }
-                    AST::CallExpr(name, argments) => {
-                        self.gen_function_call(name, argments)?;
-                    }
-                    _ => {}
-                }
+                };
+
+                self.builder.position_at_end(destination_block);
             }
-            self.current_variables.pop();
+            AST::IterationStmt(cond, loop_stmt) => {
+                let current_block = self.builder.get_insert_block().unwrap();
+                let loop_head = self
+                    .context
+                    .insert_basic_block_after(current_block, "loop_head");
+                self.builder.build_unconditional_branch(loop_head);
+
+                let loop_body = self
+                    .context
+                    .insert_basic_block_after(loop_head, "loop_body");
+                let destination_block = self
+                    .context
+                    .insert_basic_block_after(loop_body, "loop_dest_block");
+
+                self.builder.position_at_end(loop_head);
+                let comparison = self.gen_expression(cond)?.1.into_int_value();
+                let comparison = self.builder.build_int_truncate(
+                    comparison,
+                    self.context.bool_type(),
+                    "condition",
+                );
+                self.builder
+                    .build_conditional_branch(comparison, loop_body, destination_block);
+
+                self.builder.position_at_end(loop_body);
+                self.gen_statement(loop_stmt)?;
+                self.builder.build_unconditional_branch(loop_head);
+
+                self.builder.position_at_end(destination_block);
+            }
+            AST::ReturnStmt(ret_value) => match ret_value {
+                Some(ast) => {
+                    let (type_, value) = self.gen_expression(ast)?;
+                    if type_ == self.current_function.unwrap().0 {
+                        self.builder.build_return(Some(&value));
+                    } else {
+                        Err(CodeGenErr::MismatchedTypeFunction)?
+                    }
+                }
+                None => {
+                    self.builder.build_return(None);
+                }
+            },
+            AST::AssignmentExpr(var, expr) => {
+                self.gen_assinment_expr(var, expr)?;
+            }
+            AST::BinaryExpr(op, lhs, rhs) => {
+                self.gen_binary_expr(op, lhs, rhs)?;
+            }
+            AST::CallExpr(name, argments) => {
+                self.gen_function_call(name, argments)?;
+            }
+            _ => {}
         }
         Ok(())
     }
@@ -470,33 +500,38 @@ impl<'ctx> CodeBuilder<'ctx> {
     }
 
     fn gen_variable(&self, name: &str, index: &Option<&AST>) -> Result<(Type, PointerValue)> {
-        let (mut type_, mut ptr) = self.get_name_ptr(name)?;
-        if let Some(index) = index {
-            let (index_type, index) = self.gen_expression(index)?;
-            if index_type == Type::Int {
-                unsafe {
-                    ptr = self.builder.build_gep(
-                        ptr,
-                        &[
-                            self.context.i32_type().const_int(0, false),
-                            index.into_int_value(),
-                        ],
-                        "",
-                    );
-
-                    // 因为只有整数这一个类型，否则应该继续判断左值的类型
-                    type_ = Type::Int;
+        let (type_, ptr) = self.get_name_ptr(name)?;
+        match type_ {
+            Type::Int => Ok((type_, ptr)),
+            Type::Void => Err(CodeGenErr::ExpressionVoidType)?,
+            Type::IntPtr => {
+                if let Some(index) = index {
+                    let (index_type, index) = self.gen_expression(index)?;
+                    if index_type == Type::Int {
+                        let ptr = self.builder.build_load(ptr, "").into_pointer_value();
+                        unsafe {
+                            let ptr = self.builder.build_in_bounds_gep(
+                                ptr,
+                                &[index.into_int_value()],
+                                "",
+                            );
+                            Ok((Type::Int, ptr))
+                        }
+                    } else {
+                        Err(CodeGenErr::IndexNotInt)?
+                    }
+                } else {
+                    Ok((type_, ptr))
                 }
-            } else {
-                Err(CodeGenErr::IndexNotInt)?
+            }
+            _ => {
+                panic!("Shouldn't have IntArray Type!!");
             }
         }
-        Ok((type_, ptr))
     }
 
-    // =============
     fn get_name_ptr(&self, name: &str) -> Result<(Type, PointerValue)> {
-        for domain in self.current_variables.iter().rev() {
+        for domain in self.variables_stack.iter().rev() {
             if let Some(ptr) = domain.get(name) {
                 return Ok(*ptr);
             }
@@ -517,8 +552,8 @@ impl<'ctx> CodeBuilder<'ctx> {
 
 #[cfg(test)]
 mod test_parse {
+    use std::ffi::OsStr;
     use std::{
-        ffi::OsStr,
         fs::{self, File},
         io::Read,
         os::unix::prelude::OsStringExt,
