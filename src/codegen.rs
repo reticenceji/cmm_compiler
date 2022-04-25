@@ -45,11 +45,14 @@ pub struct CodeBuilder<'ctx> {
     /// or at a specific iterator location in a block.
     builder: Builder<'ctx>,
 
+    /// Global variables. Map variables' name to it's type and pointer.
     global_variables: HashMap<String, (Type, PointerValue<'ctx>)>,
-    // 代表 作用域
-    current_variables: Vec<HashMap<String, (Type, PointerValue<'ctx>)>>,
-    current_function: Option<(Type, FunctionValue<'ctx>)>,
+    /// Global functions.  Map functions' name to it's type and pointer.
     global_functions: HashMap<String, (Type, FunctionValue<'ctx>)>,
+    /// Local varibales. It represents the nesting of scopes.
+    variables_stack: Vec<HashMap<String, (Type, PointerValue<'ctx>)>>,
+    /// The function that code builder is generating.
+    current_function: Option<(Type, FunctionValue<'ctx>)>,
 }
 
 impl<'ctx> CodeBuilder<'ctx> {
@@ -65,7 +68,7 @@ impl<'ctx> CodeBuilder<'ctx> {
             module,
             builder,
             global_variables: HashMap::new(),
-            current_variables: Vec::new(),
+            variables_stack: Vec::new(),
             global_functions: HashMap::new(),
             current_function: None,
         };
@@ -178,9 +181,7 @@ impl<'ctx> CodeBuilder<'ctx> {
 
         let mut p = HashMap::new();
         for (index, arg) in function.get_param_iter().enumerate() {
-            // get param name
             let (arg_type, arg_name) = &params[index];
-            // set param name
             arg.set_name(arg_name);
 
             self.builder.position_at_end(basic_block);
@@ -194,7 +195,7 @@ impl<'ctx> CodeBuilder<'ctx> {
 
             p.insert(arg_name.clone(), (*arg_type, ptr));
         }
-        self.current_variables.push(p);
+        self.variables_stack.push(p);
         self.current_function = Some((*type_, function));
 
         self.builder.position_at_end(basic_block);
@@ -203,16 +204,16 @@ impl<'ctx> CodeBuilder<'ctx> {
             self.builder.build_return(None);
         }
 
-        self.current_variables.pop();
+        self.variables_stack.pop();
         Ok(())
     }
 
     fn gen_block_stmt(&mut self, ast: &AST) -> Result<()> {
         if let AST::BlockStmt(variables, statements) = ast {
-            self.current_variables.push(HashMap::new());
+            self.variables_stack.push(HashMap::new());
             for var in variables {
                 if let AST::VariableDec(type_, name) = var {
-                    if self.current_variables.last().unwrap().contains_key(name) {
+                    if self.variables_stack.last().unwrap().contains_key(name) {
                         Err(CodeGenErr::VariableRedefinition)?
                     };
                     let v = self
@@ -237,12 +238,12 @@ impl<'ctx> CodeBuilder<'ctx> {
                             )
                         };
                         self.builder.build_store(pv, value);
-                        self.current_variables
+                        self.variables_stack
                             .last_mut()
                             .unwrap()
                             .insert(name.clone(), (Type::IntPtr, pv));
                     } else {
-                        self.current_variables
+                        self.variables_stack
                             .last_mut()
                             .unwrap()
                             .insert(name.clone(), (*type_, v));
@@ -253,7 +254,7 @@ impl<'ctx> CodeBuilder<'ctx> {
             for stmt in statements {
                 self.gen_statement(stmt)?;
             }
-            self.current_variables.pop();
+            self.variables_stack.pop();
         }
         Ok(())
     }
@@ -455,7 +456,7 @@ impl<'ctx> CodeBuilder<'ctx> {
     fn gen_function_call(&self, name: &str, argments: &Vec<AST>) -> Result<(Type, BasicValueEnum)> {
         let mut args = Vec::new();
         for argment in argments {
-            let mut arg = self.gen_expression(argment)?.1;
+            let arg = self.gen_expression(argment)?.1;
             args.push(arg.into())
         }
         let function = self.global_functions.get(name);
@@ -527,12 +528,10 @@ impl<'ctx> CodeBuilder<'ctx> {
                 panic!("Shouldn't have IntArray Type!!");
             }
         }
-        // Ok((type_, ptr))
     }
 
-    // =============
     fn get_name_ptr(&self, name: &str) -> Result<(Type, PointerValue)> {
-        for domain in self.current_variables.iter().rev() {
+        for domain in self.variables_stack.iter().rev() {
             if let Some(ptr) = domain.get(name) {
                 return Ok(*ptr);
             }
@@ -553,8 +552,8 @@ impl<'ctx> CodeBuilder<'ctx> {
 
 #[cfg(test)]
 mod test_parse {
+    use std::ffi::OsStr;
     use std::{
-        ffi::OsStr,
         fs::{self, File},
         io::Read,
         os::unix::prelude::OsStringExt,
