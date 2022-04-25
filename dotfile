@@ -3,139 +3,97 @@ node1 [ label = " test/test.c " ];node1 -> node2
 node2 [ label = " FunctionDec " ];node2 -> node3
 node2 -> node4
 node3 [ label = " int " ];
-node4 [ label = " main " ];
+node4 [ label = " add " ];
 node2 -> node5
-node5 [ label = " BlockStmt " ];node5 -> node6
-node6 [ label = " VariableDec " ];node6 -> node7
-node6 -> node8
-node7 [ label = " int " ];
-node8 [ label = " a " ];
-
+node5 [ label = " Params " ];node5 -> node6
+node5 -> node7
+node6 [ label = " int " ];
+node7 [ label = " a " ];
+node5 -> node8
 node5 -> node9
-node9 [ label = " VariableDec " ];node9 -> node10
-node9 -> node11
-node10 [ label = " int array[10] " ];
-node11 [ label = " b " ];
+node8 [ label = " int " ];
+node9 [ label = " b " ];
 
-node5 -> node12
-node12 [ label = " AssignmentExpr " ];node12 -> node13
-node12 -> node15
-node12 -> node16
-node13 [ label = " Variable " ];node13 -> node14
-node14 [ label = " a " ];
-
-node15 [ label = " = " ];
-node16 [ label = " IntLiteral " ];node16 -> node17
-node17 [ label = " 1 " ];
-
-
-node5 -> node18
-node18 [ label = " AssignmentExpr " ];node18 -> node19
-node18 -> node21
-node18 -> node22
-node19 [ label = " Variable " ];node19 -> node20
-node20 [ label = " b " ];
-
-node21 [ label = " = " ];
-node22 [ label = " IntLiteral " ];node22 -> node23
-node23 [ label = " 0 " ];
-
-
-node5 -> node24
-node24 [ label = " AssignmentExpr " ];node24 -> node25
-node24 -> node27
-node24 -> node28
-node25 [ label = " Variable " ];node25 -> node26
-node26 [ label = " b " ];
-
-node27 [ label = " = " ];
-node28 [ label = " Variable " ];node28 -> node29
-node29 [ label = " a " ];
-
-
-node5 -> node30
-node30 [ label = " AssignmentExpr " ];node30 -> node31
-node30 -> node33
-node30 -> node34
-node31 [ label = " Variable " ];node31 -> node32
-node32 [ label = " b " ];
-
-node33 [ label = " = " ];
-node34 [ label = " xxx " ];
-
-node5 -> node35
-node35 [ label = " AssignmentExpr " ];node35 -> node36
-node35 -> node38
-node35 -> node39
-node36 [ label = " Variable " ];node36 -> node37
-node37 [ label = " b " ];
-
-node38 [ label = " = " ];
-node39 [ label = " xxx " ];
-
-node5 -> node40
-node40 [ label = " AssignmentExpr " ];node40 -> node41
-node40 -> node43
-node40 -> node44
-node41 [ label = " Variable " ];node41 -> node42
-node42 [ label = " b " ];
-
-node43 [ label = " = " ];
-node44 [ label = " xxx " ];
-
-node5 -> node45
-node45 [ label = " IterationStmt " ];node45 -> node46
-node45 -> node47
-node45 -> node48
-node46 [ label = " while " ];
-node47 [ label = " xxx " ];
-node48 [ label = " BlockStmt " ];node48 -> node49
-node49 [ label = " AssignmentExpr " ];node49 -> node50
-node49 -> node52
-node49 -> node53
-node50 [ label = " Variable " ];node50 -> node51
-node51 [ label = " b " ];
-
-node52 [ label = " = " ];
-node53 [ label = " xxx " ];
-
-node48 -> node54
-node54 [ label = " AssignmentExpr " ];node54 -> node55
-node54 -> node57
-node54 -> node58
-node55 [ label = " Variable " ];node55 -> node56
-node56 [ label = " a " ];
-
-node57 [ label = " = " ];
-node58 [ label = " xxx " ];
+node2 -> node10
+node10 [ label = " BlockStmt " ];node10 -> node11
+node11 [ label = " ReturnStmt " ];node11 -> node12
+node12 [ label = " return " ];
+node11 -> node13
+node13 [ label = " xxx " ];
 
 
 
-node5 -> node59
-node59 [ label = " SelectionStmt " ];node59 -> node60
-node59 -> node61
-node59 -> node62
-node60 [ label = " if " ];
-node61 [ label = " xxx " ];
-node62 [ label = " BlockStmt " ];node62 -> node63
-node63 [ label = " AssignmentExpr " ];node63 -> node64
-node63 -> node66
-node63 -> node67
-node64 [ label = " Variable " ];node64 -> node65
-node65 [ label = " b " ];
+node1 -> node14
+node14 [ label = " FunctionDec " ];node14 -> node15
+node14 -> node16
+node15 [ label = " int " ];
+node16 [ label = " sub " ];
+node14 -> node17
+node17 [ label = " Params " ];node17 -> node18
+node17 -> node19
+node18 [ label = " int " ];
+node19 [ label = " a " ];
+node17 -> node20
+node17 -> node21
+node20 [ label = " int " ];
+node21 [ label = " b " ];
 
-node66 [ label = " = " ];
-node67 [ label = " xxx " ];
+node14 -> node22
+node22 [ label = " BlockStmt " ];node22 -> node23
+node23 [ label = " ReturnStmt " ];node23 -> node24
+node24 [ label = " return " ];
+node23 -> node25
+node25 [ label = " xxx " ];
 
 
 
-node5 -> node68
-node68 [ label = " ReturnStmt " ];node68 -> node69
-node69 [ label = " return " ];
-node68 -> node70
-node70 [ label = " IntLiteral " ];node70 -> node71
-node71 [ label = " 1 " ];
+node1 -> node26
+node26 [ label = " FunctionDec " ];node26 -> node27
+node26 -> node28
+node27 [ label = " int " ];
+node28 [ label = " main " ];
+node26 -> node29
+node29 [ label = " BlockStmt " ];node29 -> node30
+node30 [ label = " VariableDec " ];node30 -> node31
+node30 -> node32
+node31 [ label = " int " ];
+node32 [ label = " x " ];
 
+node29 -> node33
+node33 [ label = " VariableDec " ];node33 -> node34
+node33 -> node35
+node34 [ label = " int " ];
+node35 [ label = " y " ];
+
+node29 -> node36
+node36 [ label = " AssignmentExpr " ];node36 -> node37
+node36 -> node39
+node36 -> node40
+node37 [ label = " Variable " ];node37 -> node38
+node38 [ label = " x " ];
+
+node39 [ label = " = " ];
+node40 [ label = " IntLiteral " ];node40 -> node41
+node41 [ label = " 10 " ];
+
+
+node29 -> node42
+node42 [ label = " AssignmentExpr " ];node42 -> node43
+node42 -> node45
+node42 -> node46
+node43 [ label = " Variable " ];node43 -> node44
+node44 [ label = " y " ];
+
+node45 [ label = " = " ];
+node46 [ label = " IntLiteral " ];node46 -> node47
+node47 [ label = " 53 " ];
+
+
+node29 -> node48
+node48 [ label = " ReturnStmt " ];node48 -> node49
+node49 [ label = " return " ];
+node48 -> node50
+node50 [ label = " xxx " ];
 
 
 
