@@ -23,6 +23,7 @@ void main() {
     a[7] = 7;
     a[8] = 8;
     a[9] = 9;
+    b=10;
     c = array(a, b);
     output(c);
 }

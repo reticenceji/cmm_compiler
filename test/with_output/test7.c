@@ -4,7 +4,8 @@ int main(){
         if the first is false, the one after && will not be considered
         if a-b == 0, a-b is false, else a-b is true 
     */
-    int a,b;
+    int a;
+    int b;
     /*
         114514
         30
