@@ -6,7 +6,7 @@ use inkwell::{
     context::Context,
     module::{Linkage, Module},
     targets::{CodeModel, FileType, InitializationConfig, RelocMode, Target, TargetMachine},
-    types::{BasicMetadataTypeEnum, BasicType},
+    types::{BasicMetadataTypeEnum, BasicType, IntType},
     values::{BasicValue, BasicValueEnum, FunctionValue, PointerValue},
     IntPredicate, OptimizationLevel,
 };
@@ -429,6 +429,7 @@ impl<'ctx> CodeBuilder<'ctx> {
             Oprand::Sub => self.builder.build_int_sub(lhs, rhs, ""),
             Oprand::Mul => self.builder.build_int_mul(lhs, rhs, ""),
             Oprand::Div => self.builder.build_int_signed_div(lhs, rhs, ""),
+            Oprand::Mod => self.builder.build_int_signed_rem(lhs, rhs, ""),
             Oprand::Ge => self
                 .builder
                 .build_int_compare(IntPredicate::SGE, lhs, rhs, ""),
@@ -447,8 +448,31 @@ impl<'ctx> CodeBuilder<'ctx> {
             Oprand::Ne => self
                 .builder
                 .build_int_compare(IntPredicate::NE, lhs, rhs, ""),
-        }
-        .as_basic_value_enum();
+            Oprand::Band => self.builder.build_and(lhs, rhs, ""),
+            Oprand::Bor => self.builder.build_or(lhs, rhs, ""),
+            Oprand::Bxor => self.builder.build_xor(lhs, rhs, ""),
+            Oprand::Land => {
+                let a = self.builder.build_and(lhs, rhs, "");
+                let b = self.context.i32_type().const_int(0, false);
+                self.builder.build_int_compare(IntPredicate::NE, a, b, "")
+            }
+            Oprand::Lor => {
+                let a = self.builder.build_or(lhs, rhs, "");
+                let b = self.context.i32_type().const_int(0, false);
+                self.builder.build_int_compare(IntPredicate::NE, a, b, "")
+            }
+            Oprand::LShift => self.builder.build_left_shift(lhs, rhs, ""),
+            Oprand::RShift => self.builder.build_right_shift(lhs, rhs, true, ""),
+        };
+        // 其实，更C语言的做法是在运算符两边类型不同的时候进行隐式转换
+        // 不过，我这里将所有的类型都转换成了i32类型
+        let value = if value.get_type().get_bit_width() != 32 {
+            self.builder
+                .build_int_z_extend_or_bit_cast(value, self.context.i32_type(), "")
+                .as_basic_value_enum()
+        } else {
+            value.as_basic_value_enum()
+        };
 
         Ok((Type::Int, value))
     }
@@ -587,7 +611,8 @@ mod test_parse {
 
     #[test]
     fn codegen_test() {
-        codegen_ok_test(Path::new("test/algorithm/"));
-        codegen_ok_test(Path::new("test/ok/"));
+        // codegen_ok_test(Path::new("test/algorithm/"));
+        // codegen_ok_test(Path::new("test/ok/"));
+        codegen_ok_test(Path::new("test/with_output/"));
     }
 }

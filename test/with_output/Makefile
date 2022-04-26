@@ -7,8 +7,7 @@ test: *.c
 		$(CC) --file $$cfile; \
 		$(CLANG) $(IO_C) `echo $$cfile | sed 's/\.c//'`.s -o a.out;\
 		echo $$cfile"================\n";\
-		./a.out >  `echo $$cfile | sed 's/\.c//'`_output.txt;\
-		diff `echo $$cfile | sed 's/\.c//'`_output.txt `echo $$cfile | sed 's/\.c//'`_out.txt;\
+		./a.out | diff - `echo $$cfile | sed 's/\.c//'`_out.txt;\
 	done
 	
 
