@@ -47,19 +47,19 @@ cmm --file <soruce file> --dotfile <dot file>
 dot <dotfile> -T png -o dot.png
 ```
 
-例如，生成 [test.c](test/test.c) 的 ast 可视化文件：
+例如，生成 [test.c](test/ok/test.c) 的 ast 可视化文件：
 ```shell
-cmm --file test/test.c --dotfile ./dotfile
-dot dotfile -T png -o dot.png
+cmm --file test/ok/test.c --dotfile ./dotfile
+dot dotfile -T png -o ast.png
 ```
-![](dot.png)
+![](ast.png)
 
 ## TODO
 
-- [ ] `input`和 `output`函数。
+- [x] `input`和 `output`函数。
 - [ ] 完整的测试。
 - [ ] 代码优化。
-- [ ] 现在不能有全局变量，需要修复。
+- [x] 现在不能有全局变量，需要修复。
 - [ ] 文档。
-- [ ] 语法树的可视化。
+- [x] 语法树的可视化。
 - [ ] 执行环境。

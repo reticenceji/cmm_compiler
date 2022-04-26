@@ -134,12 +134,11 @@ impl DiGraph {
         g
     }
 
-    pub fn add_cont(&mut self, cont: Content) {
+    fn add_cont(&mut self, cont: Content) {
         self.conts.push(cont)
     }
 
     fn parse_ast(&mut self, ast: &AST) {
-        self.name = Some("xxx".to_string());
         match ast {
             AST::FunctionDec(ftype, name, params, box ast) => {
                 self.name = Some("FunctionDec".to_string());
@@ -272,8 +271,43 @@ impl DiGraph {
                 self.add_cont(Content::Node(equal_node));
                 self.add_cont(Content::Node(expr_node));
             }
-            AST::BinaryExpr(oprand, box ast1, box ast2) => {}
-            AST::CallExpr(name, ast) => {}
+            AST::BinaryExpr(oprand, box ast1, box ast2) => {
+                self.name = Some("BinaryExpr".to_string());
+                let op_node = Node::new_symbol(&oprand.to_string());
+                let lval = Node::new_subg(DiGraph::from_ast(ast1));
+                let rval = Node::new_subg(DiGraph::from_ast(ast2));
+
+                self.add_cont(Content::Edge(Edge::new(&self, &op_node)));
+                self.add_cont(Content::Edge(Edge::new(&self, &lval)));
+                self.add_cont(Content::Edge(Edge::new(&self, &rval)));
+                self.add_cont(Content::Node(op_node));
+                self.add_cont(Content::Node(lval));
+                self.add_cont(Content::Node(rval));
+            }
+            AST::CallExpr(name, params) => {
+                self.name = Some("CallExpr".to_string());
+
+                let name_node = Node::new_symbol(name);
+
+                self.add_cont(Content::Edge(Edge::new(&self, &name_node)));
+                self.add_cont(Content::Node(name_node));
+
+                if !params.is_empty() {
+                    let mut subg = DiGraph::empty();
+                    subg.name = Some("Params".to_string());
+
+                    for ast in params {
+                        let node = Node::new_subg(DiGraph::from_ast(ast));
+
+                        subg.add_cont(Content::Edge(Edge::new(&subg, &node)));
+                        subg.add_cont(Content::Node(node));
+                    }
+
+                    let node = Node::new_subg(subg);
+                    self.add_cont(Content::Edge(Edge::new(&self, &node)));
+                    self.add_cont(Content::Node(node));
+                }
+            }
             AST::Variable(name, ast) => {
                 self.name = Some("Variable".to_string());
 
@@ -281,6 +315,21 @@ impl DiGraph {
 
                 self.add_cont(Content::Edge(Edge::new(&self, &name_node)));
                 self.add_cont(Content::Node(name_node));
+
+                // Array index
+                if let Some(ast) = ast {
+                    let mut subg = DiGraph::empty();
+                    subg.name = Some("Index".to_string());
+
+                    let index_node = Node::new_subg(DiGraph::from_ast(ast));
+
+                    subg.add_cont(Content::Edge(Edge::new(&subg, &index_node)));
+                    subg.add_cont(Content::Node(index_node));
+
+                    let node = Node::new_subg(subg);
+                    self.add_cont(Content::Edge(Edge::new(&self, &node)));
+                    self.add_cont(Content::Node(node));
+                }
             }
             AST::IntLiteral(val) => {
                 self.name = Some("IntLiteral".to_string());
@@ -324,25 +373,4 @@ impl IDAllocator {
 lazy_static! {
     /// Instance of IDAllocator
     static ref ID_ALLOCATOR: Mutex<IDAllocator> = Mutex::new(IDAllocator { id: 1 });
-}
-
-#[test]
-fn test_ast() {
-    use crate::parser::AST;
-    use std::{fs::File, io::Read};
-    let file = "test/ok/test_ast.c";
-    let mut source_file = File::open(file).expect("Unable to open source file!");
-    let mut source_code = String::new();
-
-    // Read source file
-    source_file
-        .read_to_string(&mut source_code)
-        .expect("Unable to read the file!");
-
-    let ast = AST::parse(source_code);
-
-    // println!("{:#?}", ast);
-
-    let g = DiGraph::new("test", &ast);
-    println!("{}", g.write_dot())
 }

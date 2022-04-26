@@ -60,6 +60,31 @@ pub enum Oprand {
     RShift,
 }
 
+impl ToString for Oprand {
+    fn to_string(&self) -> String {
+        match self {
+            Self::Add => "Add".to_string(),
+            Self::Sub => "Sub".to_string(),
+            Self::Mul => "Mul".to_string(),
+            Self::Div => "Div".to_string(),
+            Self::Mod => "Mod".to_string(),
+            Self::Ge => "Ge".to_string(),
+            Self::Le => "Le".to_string(),
+            Self::Gt => "Gt".to_string(),
+            Self::Lt => "Lt".to_string(),
+            Self::Eq => "Eq".to_string(),
+            Self::Ne => "Ne".to_string(),
+            Self::Band => "Band".to_string(),
+            Self::Bor => "Bor".to_string(),
+            Self::Bxor => "Bxor".to_string(),
+            Self::Land => "Land".to_string(),
+            Self::Lor => "Lor".to_string(),
+            Self::LShift => "LShift".to_string(),
+            Self::RShift => "RShift".to_string(),
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Type {
     Int,
