@@ -334,9 +334,7 @@ fn visit_statement(pair: Pair<'_, Rule>, ast: &mut Vec<AST>) {
             let statement = AST::ReturnStmt(expression);
             ast.push(statement);
         }
-        _ => {
-            println!("{:?}", children.as_rule())
-        }
+        _ => unreachable!(),
     }
 }
 
