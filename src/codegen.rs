@@ -603,7 +603,8 @@ mod test_parse {
 
     #[test]
     fn codegen_test() {
-        codegen_ok_test(Path::new("test/algorithm/"));
-        codegen_ok_test(Path::new("test/ok/"));
+        // codegen_ok_test(Path::new("test/algorithm/"));
+        // codegen_ok_test(Path::new("test/ok/"));
+        codegen_ok_test(Path::new("test/with_output/"));
     }
 }

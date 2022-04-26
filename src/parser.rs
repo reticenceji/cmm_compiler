@@ -139,7 +139,8 @@ fn visit_program(pair: Pair<'_, Rule>, ast: &mut Vec<AST>) {
                 visit_func_declaration(node, ast);
             }
             Rule::var_declaration => visit_var_declaration(node, ast),
-            _ => {}
+            Rule::EOI => {}
+            _ => unreachable!(),
         }
     }
 }
@@ -165,7 +166,7 @@ fn visit_var_declaration(pair: Pair<'_, Rule>, ast: &mut Vec<AST>) {
                 let size = visit_int_literal(child) as usize;
                 type_spec = Type::IntArray(size);
             }
-            _ => {}
+            _ => unreachable!(),
         }
     }
     ast.push(AST::VariableDec(type_spec, id));
@@ -178,7 +179,7 @@ fn visit_int_literal(pair: Pair<'_, Rule>) -> i32 {
         Rule::oct_literal => i32::from_str_radix(child.as_str(), 8).unwrap(),
         Rule::dec_literal => i32::from_str_radix(child.as_str(), 10).unwrap(),
         Rule::hex_literal => i32::from_str_radix(child.as_str(), 16).unwrap(),
-        _ => 0,
+        _ => unreachable!(),
     }
 }
 fn visit_type_spec(pair: Pair<'_, Rule>) -> Type {
@@ -186,7 +187,7 @@ fn visit_type_spec(pair: Pair<'_, Rule>) -> Type {
     match child.as_rule() {
         Rule::int => Type::Int,
         Rule::void => Type::Void,
-        _ => panic!(),
+        _ => unreachable!(),
     }
 }
 
@@ -221,7 +222,7 @@ fn visit_block_stmt(pair: Pair<'_, Rule>) -> AST {
         match node.as_rule() {
             Rule::var_declaration => visit_var_declaration(node, &mut vars),
             Rule::statement => visit_statement(node, &mut statements),
-            _ => {}
+            _ => unreachable!(),
         }
     }
     AST::BlockStmt(vars, statements)
@@ -240,7 +241,7 @@ fn visit_statement(pair: Pair<'_, Rule>, ast: &mut Vec<AST>) {
                     Rule::expression => {
                         ast.push(visit_expression(node));
                     }
-                    _ => {}
+                    _ => unreachable!(),
                 }
             }
         }
@@ -263,7 +264,7 @@ fn visit_statement(pair: Pair<'_, Rule>, ast: &mut Vec<AST>) {
                     Rule::statement if !is_if => {
                         visit_statement(node, &mut else_statement);
                     }
-                    _ => {}
+                    _ => unreachable!(),
                 }
             }
             let statement = AST::SelectionStmt(
@@ -285,7 +286,7 @@ fn visit_statement(pair: Pair<'_, Rule>, ast: &mut Vec<AST>) {
                     Rule::statement => {
                         visit_statement(node, &mut loop_statement);
                     }
-                    _ => {}
+                    _ => unreachable!(),
                 }
             }
 
@@ -301,7 +302,7 @@ fn visit_statement(pair: Pair<'_, Rule>, ast: &mut Vec<AST>) {
             for node in children {
                 match node.as_rule() {
                     Rule::expression => expression = Some(boxed!(visit_expression(node))),
-                    _ => {}
+                    _ => unreachable!(),
                 }
             }
 
@@ -332,7 +333,7 @@ fn visit_unary_expr(pair: Pair<'_, Rule>) -> AST {
         Rule::int_literal => AST::IntLiteral(visit_int_literal(child)),
         Rule::call_expr => visit_call_expr(child),
         Rule::bracket_expr => visit_bracket_expr(child),
-        _ => panic!(),
+        _ => unreachable!(),
     }
 }
 
@@ -407,7 +408,7 @@ fn visit_binary_expr(pair: Pair<'_, Rule>) -> AST {
             Rule::op_bit_or => Oprand::Bor,
             Rule::op_or => Oprand::Lor,
             Rule::op_and => Oprand::Land,
-            _ => panic!(),
+            _ => unreachable!(),
         };
         expr = children.next().unwrap();
         let rhs = visit_expression(expr);
@@ -418,11 +419,12 @@ fn visit_binary_expr(pair: Pair<'_, Rule>) -> AST {
 
 #[cfg(test)]
 mod test_parse {
+    use pest::iterators::Pair;
     use pest::Parser;
     use std::fs::File;
     use std::io::Read;
 
-    fn dfs(tabs: &mut Vec<bool>, pair: Pair<'_, Rule>) {
+    fn dfs(tabs: &mut Vec<bool>, pair: Pair<'_, super::Rule>) {
         let mut pair = pair.into_inner();
         let mut current = pair.next();
         let mut next = pair.next();
@@ -452,7 +454,7 @@ mod test_parse {
     }
 
     /// print the parse tree, like command tree's style
-    pub fn parse_tree_visable(parse_tree: Pair<'_, Rule>) {
+    pub fn parse_tree_visable(parse_tree: Pair<'_, super::Rule>) {
         dfs(&mut vec![], parse_tree);
     }
 
@@ -466,7 +468,7 @@ mod test_parse {
             .next()
             .unwrap();
         assert_eq!(root.as_rule(), super::Rule::program);
-        super::parse_tree_visable(root);
+        parse_tree_visable(root);
     }
     #[test]
     fn ast_test() {

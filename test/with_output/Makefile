@@ -17,3 +17,4 @@ clean:
 	rm *.s
 	rm *.ll
 	rm a.out
+	rm *output.txt
