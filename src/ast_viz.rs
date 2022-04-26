@@ -325,24 +325,3 @@ lazy_static! {
     /// Instance of IDAllocator
     static ref ID_ALLOCATOR: Mutex<IDAllocator> = Mutex::new(IDAllocator { id: 1 });
 }
-
-#[test]
-fn test_ast() {
-    use crate::parser::AST;
-    use std::{fs::File, io::Read};
-    let file = "test/ok/test_ast.c";
-    let mut source_file = File::open(file).expect("Unable to open source file!");
-    let mut source_code = String::new();
-
-    // Read source file
-    source_file
-        .read_to_string(&mut source_code)
-        .expect("Unable to read the file!");
-
-    let ast = AST::parse(source_code);
-
-    // println!("{:#?}", ast);
-
-    let g = DiGraph::new("test", &ast);
-    println!("{}", g.write_dot())
-}
