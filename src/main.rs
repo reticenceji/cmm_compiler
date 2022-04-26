@@ -1,10 +1,7 @@
 #![feature(let_chains)]
 #![feature(box_patterns)]
-extern crate clap;
-extern crate pest;
 #[macro_use]
 extern crate pest_derive;
-extern crate serde;
 
 mod ast_viz;
 mod codegen;
@@ -59,6 +56,4 @@ fn main() {
     // After we will make it chosable.
     codegen.build_asm(Path::new(&format!("{}.s", prefix)));
     codegen.build_llvmir(Path::new(&format!("{}.ll", prefix)));
-
-    // println!("{:?}", serde_json::to_string(&ast));
 }

@@ -3,7 +3,6 @@ use inkwell::{
     types::{BasicMetadataTypeEnum, BasicType, BasicTypeEnum},
 };
 use pest::{iterators::Pair, Parser};
-use serde::Serialize;
 use std::borrow::Borrow;
 use sugars::boxed;
 
@@ -11,7 +10,7 @@ use sugars::boxed;
 #[grammar = "grammar.pest"]
 pub struct CParser;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub enum AST {
     /// type, name, params, block_statements: type name(params) {statements}
     FunctionDec(Type, String, Vec<(Type, String)>, Box<AST>),
@@ -39,7 +38,7 @@ pub enum AST {
     IntLiteral(i32),
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub enum Oprand {
     Add,
     Sub,
@@ -61,7 +60,7 @@ pub enum Oprand {
     RShift,
 }
 
-#[derive(Debug, Serialize, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Type {
     Int,
     Void,
@@ -478,6 +477,5 @@ mod test_parse {
         for i in &ast {
             println!("{:?}", i);
         }
-        println!("{}", serde_json::to_string_pretty(&ast).unwrap());
     }
 }
