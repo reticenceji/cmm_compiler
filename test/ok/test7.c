@@ -1,16 +1,6 @@
-int gcd(int u, int v)
+int main()
 {
-    u = 1;
-    if(v == 0)
-        return u;
-    else
-        return gcd(u, u-u/v*v);
-}
-void main()
-{
-    int x;
-    int y;
-    x = input();
-    y = input();
-    output(gcd(x, y));
+    int i;
+    i = 5;
+    return i;
 }

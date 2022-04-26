@@ -1,20 +1,11 @@
-int add(int a,int b){
-    return a+b;
-    /*
-    	add
-    */
+void inc() {
+    int i;
+    i = i + 1;
+    return;
 }
-int sub(int a,int b){
-    /*
-    	sub
-    */
-    return a-b;
-}
-int main(){
-    int x;
-    int y;
-    x = 10;
-    y = 53;
-    output(add(x,y)+sub(x,y));
+
+int main() {
+    int x[5];
+    x[0] = 5;
     return 0;
 }
