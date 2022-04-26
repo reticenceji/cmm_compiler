@@ -54,6 +54,6 @@ fn main() {
 
     // Now we build asm file, llvm-ir file and print json AST.
     // After we will make it chosable.
-    codegen.build_asm(Path::new(&format!("{}.s", prefix)));
     codegen.build_llvmir(Path::new(&format!("{}.ll", prefix)));
+    codegen.build_asm(Path::new(&format!("{}.s", prefix)));
 }

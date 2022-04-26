@@ -6,7 +6,7 @@ use inkwell::{
     context::Context,
     module::{Linkage, Module},
     targets::{CodeModel, FileType, InitializationConfig, RelocMode, Target, TargetMachine},
-    types::{BasicMetadataTypeEnum, BasicType},
+    types::{BasicMetadataTypeEnum, BasicType, IntType},
     values::{BasicValue, BasicValueEnum, FunctionValue, PointerValue},
     IntPredicate, OptimizationLevel,
 };
@@ -463,8 +463,16 @@ impl<'ctx> CodeBuilder<'ctx> {
             }
             Oprand::LShift => self.builder.build_left_shift(lhs, rhs, ""),
             Oprand::RShift => self.builder.build_right_shift(lhs, rhs, true, ""),
-        }
-        .as_basic_value_enum();
+        };
+        // 其实，更C语言的做法是在运算符两边类型不同的时候进行隐式转换
+        // 不过，我这里将所有的类型都转换成了i32类型
+        let value = if value.get_type().get_bit_width() != 32 {
+            self.builder
+                .build_int_z_extend_or_bit_cast(value, self.context.i32_type(), "")
+                .as_basic_value_enum()
+        } else {
+            value.as_basic_value_enum()
+        };
 
         Ok((Type::Int, value))
     }
