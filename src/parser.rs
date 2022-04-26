@@ -45,12 +45,20 @@ pub enum Oprand {
     Sub,
     Mul,
     Div,
+    Mod,
     Ge,
     Le,
     Gt,
     Lt,
     Eq,
     Ne,
+    Band,
+    Bor,
+    Bxor,
+    Land,
+    Lor,
+    LShift,
+    RShift,
 }
 
 #[derive(Debug, Serialize, PartialEq, Eq, Clone, Copy)]
@@ -392,6 +400,14 @@ fn visit_binary_expr(pair: Pair<'_, Rule>) -> AST {
             Rule::op_sub => Oprand::Sub,
             Rule::op_mul => Oprand::Mul,
             Rule::op_div => Oprand::Div,
+            Rule::op_mod => Oprand::Mod,
+            Rule::op_rshift => Oprand::RShift,
+            Rule::op_lshift => Oprand::LShift,
+            Rule::op_bit_and => Oprand::Band,
+            Rule::op_bit_xor => Oprand::Bxor,
+            Rule::op_bit_or => Oprand::Bor,
+            Rule::op_or => Oprand::Lor,
+            Rule::op_and => Oprand::Land,
             _ => panic!(),
         };
         expr = children.next().unwrap();

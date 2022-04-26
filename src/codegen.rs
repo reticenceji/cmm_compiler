@@ -429,6 +429,7 @@ impl<'ctx> CodeBuilder<'ctx> {
             Oprand::Sub => self.builder.build_int_sub(lhs, rhs, ""),
             Oprand::Mul => self.builder.build_int_mul(lhs, rhs, ""),
             Oprand::Div => self.builder.build_int_signed_div(lhs, rhs, ""),
+            Oprand::Mod => self.builder.build_int_signed_rem(lhs, rhs, ""),
             Oprand::Ge => self
                 .builder
                 .build_int_compare(IntPredicate::SGE, lhs, rhs, ""),
@@ -447,6 +448,21 @@ impl<'ctx> CodeBuilder<'ctx> {
             Oprand::Ne => self
                 .builder
                 .build_int_compare(IntPredicate::NE, lhs, rhs, ""),
+            Oprand::Band => self.builder.build_and(lhs, rhs, ""),
+            Oprand::Bor => self.builder.build_or(lhs, rhs, ""),
+            Oprand::Bxor => self.builder.build_xor(lhs, rhs, ""),
+            Oprand::Land => {
+                let a = self.builder.build_and(lhs, rhs, "");
+                let b = self.context.i32_type().const_int(0, false);
+                self.builder.build_int_compare(IntPredicate::NE, a, b, "")
+            }
+            Oprand::Lor => {
+                let a = self.builder.build_or(lhs, rhs, "");
+                let b = self.context.i32_type().const_int(0, false);
+                self.builder.build_int_compare(IntPredicate::NE, a, b, "")
+            }
+            Oprand::LShift => self.builder.build_left_shift(lhs, rhs, ""),
+            Oprand::RShift => self.builder.build_right_shift(lhs, rhs, true, ""),
         }
         .as_basic_value_enum();
 
