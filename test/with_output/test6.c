@@ -1,7 +1,8 @@
 int main(){
     int x;
     int y;
-    int a,b;
+    int a;
+    int b;
     x=0;
     y=0;
 
