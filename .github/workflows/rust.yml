@@ -16,5 +16,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+    - name: Environment
+      run:  rustup override set nightly
     - name: Run tests
-      run: cargo test
+      run:  cargo test
