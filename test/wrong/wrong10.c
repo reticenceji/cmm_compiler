@@ -10,8 +10,8 @@ void main()
 {
     int x;
     int y;
-    x = input();
-    y = input();
+    x = 21
+    y = 20;
     if(){
         y=y+1;
     }
