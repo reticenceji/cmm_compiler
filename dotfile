@@ -1,5 +1,5 @@
 digraph prog {
-node1 [ label = " test/test.c " ];node1 -> node2
+node1 [ label = " test/ok/test.c " ];node1 -> node2
 node2 [ label = " FunctionDec " ];node2 -> node3
 node2 -> node4
 node3 [ label = " int " ];
@@ -19,81 +19,131 @@ node10 [ label = " BlockStmt " ];node10 -> node11
 node11 [ label = " ReturnStmt " ];node11 -> node12
 node12 [ label = " return " ];
 node11 -> node13
-node13 [ label = " xxx " ];
+node13 [ label = " BinaryExpr " ];node13 -> node14
+node13 -> node15
+node13 -> node17
+node14 [ label = " Add " ];
+node15 [ label = " Variable " ];node15 -> node16
+node16 [ label = " a " ];
+
+node17 [ label = " Variable " ];node17 -> node18
+node18 [ label = " b " ];
 
 
 
-node1 -> node14
-node14 [ label = " FunctionDec " ];node14 -> node15
-node14 -> node16
-node15 [ label = " int " ];
-node16 [ label = " sub " ];
-node14 -> node17
-node17 [ label = " Params " ];node17 -> node18
-node17 -> node19
-node18 [ label = " int " ];
-node19 [ label = " a " ];
-node17 -> node20
-node17 -> node21
+
+
+node1 -> node19
+node19 [ label = " FunctionDec " ];node19 -> node20
+node19 -> node21
 node20 [ label = " int " ];
-node21 [ label = " b " ];
+node21 [ label = " sub " ];
+node19 -> node22
+node22 [ label = " Params " ];node22 -> node23
+node22 -> node24
+node23 [ label = " int " ];
+node24 [ label = " a " ];
+node22 -> node25
+node22 -> node26
+node25 [ label = " int " ];
+node26 [ label = " b " ];
 
-node14 -> node22
-node22 [ label = " BlockStmt " ];node22 -> node23
-node23 [ label = " ReturnStmt " ];node23 -> node24
-node24 [ label = " return " ];
-node23 -> node25
-node25 [ label = " xxx " ];
-
-
-
-node1 -> node26
-node26 [ label = " FunctionDec " ];node26 -> node27
-node26 -> node28
-node27 [ label = " int " ];
-node28 [ label = " main " ];
-node26 -> node29
-node29 [ label = " BlockStmt " ];node29 -> node30
-node30 [ label = " VariableDec " ];node30 -> node31
+node19 -> node27
+node27 [ label = " BlockStmt " ];node27 -> node28
+node28 [ label = " ReturnStmt " ];node28 -> node29
+node29 [ label = " return " ];
+node28 -> node30
+node30 [ label = " BinaryExpr " ];node30 -> node31
 node30 -> node32
-node31 [ label = " int " ];
-node32 [ label = " x " ];
+node30 -> node34
+node31 [ label = " Sub " ];
+node32 [ label = " Variable " ];node32 -> node33
+node33 [ label = " a " ];
 
-node29 -> node33
-node33 [ label = " VariableDec " ];node33 -> node34
-node33 -> node35
-node34 [ label = " int " ];
-node35 [ label = " y " ];
+node34 [ label = " Variable " ];node34 -> node35
+node35 [ label = " b " ];
 
-node29 -> node36
-node36 [ label = " AssignmentExpr " ];node36 -> node37
+
+
+
+
+node1 -> node36
+node36 [ label = " FunctionDec " ];node36 -> node37
+node36 -> node38
+node37 [ label = " int " ];
+node38 [ label = " main " ];
 node36 -> node39
-node36 -> node40
-node37 [ label = " Variable " ];node37 -> node38
-node38 [ label = " x " ];
+node39 [ label = " BlockStmt " ];node39 -> node40
+node40 [ label = " VariableDec " ];node40 -> node41
+node40 -> node42
+node41 [ label = " int " ];
+node42 [ label = " x " ];
 
-node39 [ label = " = " ];
-node40 [ label = " IntLiteral " ];node40 -> node41
-node41 [ label = " 10 " ];
+node39 -> node43
+node43 [ label = " VariableDec " ];node43 -> node44
+node43 -> node45
+node44 [ label = " int " ];
+node45 [ label = " y " ];
+
+node39 -> node46
+node46 [ label = " AssignmentExpr " ];node46 -> node47
+node46 -> node49
+node46 -> node50
+node47 [ label = " Variable " ];node47 -> node48
+node48 [ label = " x " ];
+
+node49 [ label = " = " ];
+node50 [ label = " IntLiteral " ];node50 -> node51
+node51 [ label = " 10 " ];
 
 
-node29 -> node42
-node42 [ label = " AssignmentExpr " ];node42 -> node43
-node42 -> node45
-node42 -> node46
-node43 [ label = " Variable " ];node43 -> node44
-node44 [ label = " y " ];
+node39 -> node52
+node52 [ label = " AssignmentExpr " ];node52 -> node53
+node52 -> node55
+node52 -> node56
+node53 [ label = " Variable " ];node53 -> node54
+node54 [ label = " y " ];
 
-node45 [ label = " = " ];
-node46 [ label = " IntLiteral " ];node46 -> node47
-node47 [ label = " 53 " ];
+node55 [ label = " = " ];
+node56 [ label = " IntLiteral " ];node56 -> node57
+node57 [ label = " 53 " ];
 
 
-node29 -> node48
-node48 [ label = " ReturnStmt " ];node48 -> node49
-node49 [ label = " return " ];
-node48 -> node50
-node50 [ label = " xxx " ];
+node39 -> node58
+node58 [ label = " ReturnStmt " ];node58 -> node59
+node59 [ label = " return " ];
+node58 -> node60
+node60 [ label = " BinaryExpr " ];node60 -> node61
+node60 -> node62
+node60 -> node69
+node61 [ label = " Add " ];
+node62 [ label = " CallExpr " ];node62 -> node63
+node63 [ label = " add " ];
+node62 -> node64
+node64 [ label = " Params " ];node64 -> node65
+node65 [ label = " Variable " ];node65 -> node66
+node66 [ label = " x " ];
+
+node64 -> node67
+node67 [ label = " Variable " ];node67 -> node68
+node68 [ label = " y " ];
+
+
+
+node69 [ label = " CallExpr " ];node69 -> node70
+node70 [ label = " sub " ];
+node69 -> node71
+node71 [ label = " Params " ];node71 -> node72
+node72 [ label = " Variable " ];node72 -> node73
+node73 [ label = " x " ];
+
+node71 -> node74
+node74 [ label = " Variable " ];node74 -> node75
+node75 [ label = " y " ];
+
+
+
+
 
 
 
