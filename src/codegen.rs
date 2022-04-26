@@ -357,7 +357,7 @@ impl<'ctx> CodeBuilder<'ctx> {
                 }
             },
             AST::AssignmentExpr(var, expr) => {
-                self.gen_assinment_expr(var, expr)?;
+                self.gen_assignment_expr(var, expr)?;
             }
             AST::BinaryExpr(op, lhs, rhs) => {
                 self.gen_binary_expr(op, lhs, rhs)?;
@@ -365,14 +365,14 @@ impl<'ctx> CodeBuilder<'ctx> {
             AST::CallExpr(name, argments) => {
                 self.gen_function_call(name, argments)?;
             }
-            _ => {}
+            _ => unreachable!(),
         }
         Ok(())
     }
 
     fn gen_expression(&self, ast: &AST) -> Result<(Type, BasicValueEnum)> {
         match ast {
-            AST::AssignmentExpr(var, expr) => self.gen_assinment_expr(var, expr),
+            AST::AssignmentExpr(var, expr) => self.gen_assignment_expr(var, expr),
             AST::BinaryExpr(op, lhs, rhs) => self.gen_binary_expr(op, lhs, rhs),
             AST::CallExpr(name, argments) => {
                 // 在expression上下文中不应该返回void
@@ -394,9 +394,7 @@ impl<'ctx> CodeBuilder<'ctx> {
                     .const_int(*value as u64, true)
                     .as_basic_value_enum(),
             )),
-            _ => {
-                panic!()
-            }
+            _ => unreachable!(),
         }
     }
 
@@ -413,7 +411,7 @@ impl<'ctx> CodeBuilder<'ctx> {
                 self.builder
                     .build_ptr_to_int(p, self.context.i32_type(), "")
             }
-            _ => panic!(),
+            _ => unreachable!(),
         };
         let rhs = match rhs {
             BasicValueEnum::IntValue(i) => i,
@@ -421,7 +419,7 @@ impl<'ctx> CodeBuilder<'ctx> {
                 self.builder
                     .build_ptr_to_int(p, self.context.i32_type(), "")
             }
-            _ => panic!(),
+            _ => unreachable!(),
         };
 
         let value = match op {
@@ -508,7 +506,7 @@ impl<'ctx> CodeBuilder<'ctx> {
         }
     }
 
-    fn gen_assinment_expr(&self, var: &AST, expr: &AST) -> Result<(Type, BasicValueEnum)> {
+    fn gen_assignment_expr(&self, var: &AST, expr: &AST) -> Result<(Type, BasicValueEnum)> {
         if let AST::Variable(name, index) = var {
             let (type_left, ptr) = self.gen_variable(name, &index.as_ref().map(|x| x.as_ref()))?;
             let (type_right, value) = self.gen_expression(expr)?;
@@ -519,7 +517,7 @@ impl<'ctx> CodeBuilder<'ctx> {
                 Err(CodeGenErr::MismatchedType)?
             }
         } else {
-            panic!()
+            unreachable!()
         }
     }
 
@@ -548,9 +546,7 @@ impl<'ctx> CodeBuilder<'ctx> {
                     Ok((type_, ptr))
                 }
             }
-            _ => {
-                panic!("Shouldn't have IntArray Type!!");
-            }
+            _ => unreachable!(),
         }
     }
 
@@ -611,8 +607,8 @@ mod test_parse {
 
     #[test]
     fn codegen_test() {
-        // codegen_ok_test(Path::new("test/algorithm/"));
-        // codegen_ok_test(Path::new("test/ok/"));
+        codegen_ok_test(Path::new("test/algorithm/"));
+        codegen_ok_test(Path::new("test/ok/"));
         codegen_ok_test(Path::new("test/with_output/"));
     }
 }
