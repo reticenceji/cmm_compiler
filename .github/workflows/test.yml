@@ -51,9 +51,6 @@ jobs:
           if [[ $file =~ ".c" ]];
           then
             ../../target/debug/cmm --file $file
-            clang ../../src/io.c `echo $file | sed 's/\.c//'`.s -o a.out
-            echo $file"================\n"
-            ./a.out 
           fi
         done
         echo "test for ok"
@@ -65,6 +62,5 @@ jobs:
             ../../target/debug/cmm --file $file
             clang ../../src/io.c `echo $file | sed 's/\.c//'`.s -o a.out
             echo $file"================\n"
-            ./a.out 
           fi
         done
