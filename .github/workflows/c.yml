@@ -1,0 +1,26 @@
+name: C/C++ CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: cd_algorithm
+      run: cd ../../test/algorithm
+    - name: make_algorithm
+      run: make test
+    - name: cd_with_output
+      run: cd ../with_outputcd 
+    - name: make_with_output
+      run: make test
+      
+        
+      
