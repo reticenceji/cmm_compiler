@@ -13,11 +13,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - name: cd_algorithm
+    - name: test_algorithm
       run: |
         cd ../../ZJU_Compiler/ZJU_Compiler/test/algorithm
-    - name: make_algorithm
-      run: |
         echo `pwd`
         for file in `ls`
         do
