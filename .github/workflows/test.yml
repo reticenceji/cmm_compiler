@@ -8,9 +8,7 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v3
     - name: Environment
@@ -19,6 +17,8 @@ jobs:
       run:  |
         cargo test
         cargo build
+    - name: algorithm_test
+      run: |    
         cd ../../ZJU_Compiler/ZJU_Compiler/test/algorithm
         echo "test for algorithm"
         for file in `ls`
@@ -31,6 +31,8 @@ jobs:
             cat input.txt | ./a.out | diff - output.txt
           fi
         done
+    - name: with_output_test
+      run: |       
         cd ../with_output
         echo "test for with_output"
         for file in `ls`
@@ -43,24 +45,35 @@ jobs:
             ./a.out | diff - `echo $file | sed 's/\.c//'`_out.txt
           fi
         done
-
+    - name: wrong_test
+      run: | 
         echo "test for wrong"
         cd ../wrong
         for file in `ls`
         do
           if [[ $file =~ ".c" ]];
           then
-            ../../target/debug/cmm --file $file
+            echo $file"================\n"
+            if [[../../target/debug/cmm --file $file]];then 
+              exit 1
+            else
+              exit 0
+            fi
           fi
         done
+      - name: ok_test
+      run: | 
         echo "test for ok"
         cd ../ok
         for file in `ls`
         do
           if [[ $file =~ ".c" ]];
           then
-            ../../target/debug/cmm --file $file
-            clang ../../src/io.c `echo $file | sed 's/\.c//'`.s -o a.out
             echo $file"================\n"
+            if [[../../target/debug/cmm --file $file]];then 
+              exit 0
+            else
+              exit 1
+            fi
           fi
         done

@@ -17,4 +17,5 @@ int main() {
     int c;
     a = 10;
     c = 6;
+    return 0;
 }

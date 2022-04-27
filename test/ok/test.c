@@ -15,7 +15,10 @@ int sub(int a,int b){
 int main(){
     int x;
     int y;
+    int z;
     x = 10;
     y = 53;
-    return add(x,y)+sub(x,y);
+    z = add(x,y)+sub(x,y);
+    return 0
+
 }
