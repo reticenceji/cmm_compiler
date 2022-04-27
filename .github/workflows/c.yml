@@ -13,14 +13,18 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - name: cd_algorithm
-      run: cd ../../test/algorithm
     - name: make_algorithm
-      run: make test
-    - name: cd_with_output
-      run: cd ../with_outputcd 
-    - name: make_with_output
-      run: make test
+      run: |
+        for file in `ls ~/test/algorithm`
+        do
+          if [[ "$file" == *".c" ]];
+          then
+            ~/target/debug/cmm --file $file
+            clang ~/src/io.c `echo $file | sed 's/\.c//'`.s -o a.out
+            echo $file"================\n"
+            cat ~/test/algorithm/input.txt | ~/test/algorithm/a.out | diff - ~/test/algorithm/output.txt
+          fi
+        done
       
         
       
