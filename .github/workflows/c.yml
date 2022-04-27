@@ -20,7 +20,7 @@ jobs:
         for file in `ls`
         do
           echo $file
-          if [[ "$file" == "test*.c" ]];
+          if [[ "$file" == "*.c" ]];
           then
             echo $file
             ../../target/debug/cmm --file $file
