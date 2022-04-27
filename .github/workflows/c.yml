@@ -16,9 +16,8 @@ jobs:
     - name: Environment
       run:  rustup override set nightly
     - name: Run tests
-      run:  cargo test
-    - name: test_algorithm
-      run: |
+      run:  |
+        cargo test
         cd ../../ZJU_Compiler/ZJU_Compiler/test/algorithm
         echo `pwd`
         for file in `ls`
