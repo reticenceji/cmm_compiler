@@ -20,12 +20,11 @@ jobs:
         cargo test
         cargo build
         cd ../../ZJU_Compiler/ZJU_Compiler/test/algorithm
+        echo "test for algorithm"
         for file in `ls`
         do
-          echo $file
           if [[ $file =~ ".c" ]];
           then
-            echo $file
             ../../target/debug/cmm --file $file
             clang ../../src/io.c `echo $file | sed 's/\.c//'`.s -o a.out
             echo $file"================\n"
@@ -33,30 +32,39 @@ jobs:
           fi
         done
         cd ../with_output
+        echo "test for with_output"
         for file in `ls`
         do
-          echo $file
           if [[ $file =~ ".c" ]];
           then
-            echo $file
             ../../target/debug/cmm --file $file
             clang ../../src/io.c `echo $file | sed 's/\.c//'`.s -o a.out
             echo $file"================\n"
             ./a.out | diff - `echo $file | sed 's/\.c//'`_out.txt
           fi
         done
+        echo "test for ok"
         cd ../ok
         for file in `ls`
         do
-          echo $file
           if [[ $file =~ ".c" ]];
           then
-            echo $file
             ../../target/debug/cmm --file $file
             clang ../../src/io.c `echo $file | sed 's/\.c//'`.s -o a.out
             echo $file"================\n"
             ./a.out 
           fi
         done
-        
+        echo "test for wrong"
+        cd ../wrong
+        for file in `ls`
+        do
+          if [[ $file =~ ".c" ]];
+          then
+            ../../target/debug/cmm --file $file
+            clang ../../src/io.c `echo $file | sed 's/\.c//'`.s -o a.out
+            echo $file"================\n"
+            ./a.out 
+          fi
+        done
       
