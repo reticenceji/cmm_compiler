@@ -1,0 +1,62 @@
+name: C/C++ CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Environment
+      run:  rustup override set nightly
+    - name: Run tests
+      run:  |
+        cargo test
+        cargo build
+        cd ../../ZJU_Compiler/ZJU_Compiler/test/algorithm
+        for file in `ls`
+        do
+          echo $file
+          if [[ $file =~ ".c" ]];
+          then
+            echo $file
+            ../../target/debug/cmm --file $file
+            clang ../../src/io.c `echo $file | sed 's/\.c//'`.s -o a.out
+            echo $file"================\n"
+            cat input.txt | ./a.out | diff - output.txt
+          fi
+        done
+        cd ../with_output
+        for file in `ls`
+        do
+          echo $file
+          if [[ $file =~ ".c" ]];
+          then
+            echo $file
+            ../../target/debug/cmm --file $file
+            clang ../../src/io.c `echo $file | sed 's/\.c//'`.s -o a.out
+            echo $file"================\n"
+            ./a.out | diff - `echo $file | sed 's/\.c//'`_out.txt
+          fi
+        done
+        cd ../ok
+        for file in `ls`
+        do
+          echo $file
+          if [[ $file =~ ".c" ]];
+          then
+            echo $file
+            ../../target/debug/cmm --file $file
+            clang ../../src/io.c `echo $file | sed 's/\.c//'`.s -o a.out
+            echo $file"================\n"
+            ./a.out 
+          fi
+        done
+        
+      
