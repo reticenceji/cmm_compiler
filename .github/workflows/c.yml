@@ -17,6 +17,8 @@ jobs:
       run: |
         cd ../../
         echo $( pwd )
+        echo $( ls )
+#        echo $( tree )
 #     - name: make_algorithm
 #       run: |
 #         for file in `ls ../../test/algorithm`
