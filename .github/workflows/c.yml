@@ -18,8 +18,10 @@ jobs:
     - name: Run tests
       run:  |
         cargo test
+        cargo build
         cd ../../ZJU_Compiler/ZJU_Compiler/test/algorithm
         echo `pwd`
+        echo `ls ../../`
         for file in `ls`
         do
           echo $file
