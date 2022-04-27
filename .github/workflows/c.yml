@@ -13,6 +13,10 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+    - name: Environment
+      run:  rustup override set nightly
+    - name: Run tests
+      run:  cargo test
     - name: test_algorithm
       run: |
         cd ../../ZJU_Compiler/ZJU_Compiler/test/algorithm
