@@ -13,18 +13,22 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - name: make_algorithm
+    - name: cd
       run: |
-        for file in `ls ~/test/algorithm`
-        do
-          if [[ "$file" == *".c" ]];
-          then
-            ~/target/debug/cmm --file $file
-            clang ~/src/io.c `echo $file | sed 's/\.c//'`.s -o a.out
-            echo $file"================\n"
-            cat ~/test/algorithm/input.txt | ~/test/algorithm/a.out | diff - ~/test/algorithm/output.txt
-          fi
-        done
+        cd ../../
+        echo $( pwd )
+#     - name: make_algorithm
+#       run: |
+#         for file in `ls ../../test/algorithm`
+#         do
+#           if [[ "$file" == *".c" ]];
+#           then
+#             ~/target/debug/cmm --file $file
+#             clang ../../src/io.c `echo $file | sed 's/\.c//'`.s -o a.out
+#             echo $file"================\n"
+#             cat ../../test/algorithm/input.txt | ../../test/algorithm/a.out | diff - ../../test/algorithm/output.txt
+#           fi
+#         done
       
         
       
