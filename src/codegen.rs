@@ -579,12 +579,11 @@ impl<'ctx> CodeBuilder<'ctx> {
 
 #[cfg(test)]
 mod test_parse {
-    use std::ffi::OsStr;
     use std::{
         fs::{self, File},
         io::Read,
         os::unix::prelude::OsStringExt,
-        path::{Path, PathBuf},
+        path::Path,
     };
 
     use inkwell::context::Context;
