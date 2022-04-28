@@ -45,35 +45,35 @@ jobs:
             ./a.out | diff - `echo $file | sed 's/\.c//'`_out.txt
           fi
         done
-    # - name: wrong_test
-    #   run: | 
-    #     echo "test for wrong"
-    #     cd ../wrong
-    #     for file in `ls`
-    #     do
-    #       if [[ $file =~ ".c" ]];
-    #       then
-    #         echo $file"================\n"
-    #         if [[../../target/debug/cmm --file $file]];then 
-    #           exit 1
-    #         else
-    #           exit 0
-    #         fi
-    #       fi
-    #     done
-    #   - name: ok_test
-    #   run: | 
-    #     echo "test for ok"
-    #     cd ../ok
-    #     for file in `ls`
-    #     do
-    #       if [[ $file =~ ".c" ]];
-    #       then
-    #         echo $file"================\n"
-    #         if [[../../target/debug/cmm --file $file]];then 
-    #           exit 0
-    #         else
-    #           exit 1
-    #         fi
-    #       fi
-    #     done
+    - name: wrong_test
+      run: | 
+        echo "test for wrong"
+        cd ../wrong
+        for file in `ls`
+        do
+          if [[ $file =~ ".c" ]];
+          then
+            echo $file"================\n"
+            if [[../../target/debug/cmm --file $file]];then 
+              exit 1
+            else
+              exit 0
+            fi
+          fi
+        done
+      - name: ok_test
+      run: | 
+        echo "test for ok"
+        cd ../ok
+        for file in `ls`
+        do
+          if [[ $file =~ ".c" ]];
+          then
+            echo $file"================\n"
+            if [[../../target/debug/cmm --file $file]];then 
+              exit 0
+            else
+              exit 1
+            fi
+          fi
+        done

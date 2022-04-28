@@ -19,6 +19,5 @@ int main(){
     x = 10;
     y = 53;
     z = add(x,y)+sub(x,y);
-    return 0
-
+    return 0;
 }
