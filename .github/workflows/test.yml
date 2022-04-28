@@ -2,8 +2,7 @@ name: C/C++ CI
 
 on:
   push:
-    branches: [ main ]
-    branches: [ master ]
+    branches: [ main master]
   pull_request:
     branches: [ main ]
 
