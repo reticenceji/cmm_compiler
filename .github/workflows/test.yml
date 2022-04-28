@@ -54,7 +54,7 @@ jobs:
           if [[ $file =~ ".c" ]];
           then
             echo $file"================\n"
-            if [[../../target/debug/cmm --file $file]];then 
+            if ../../target/debug/cmm --file $file;then 
               exit 1
             else
               exit 0
@@ -70,7 +70,7 @@ jobs:
           if [[ $file =~ ".c" ]];
           then
             echo $file"================\n"
-            if [[../../target/debug/cmm --file $file]];then 
+            if ../../target/debug/cmm --file $file;then 
               exit 0
             else
               exit 1
