@@ -33,7 +33,7 @@ jobs:
         done
     - name: with_output_test
       run: |       
-        cd ../with_output
+        cd ../../ZJU_Compiler/ZJU_Compiler/test/with_output
         echo "test for with_output"
         for file in `ls`
         do
@@ -48,7 +48,7 @@ jobs:
     - name: wrong_test
       run: | 
         echo "test for wrong"
-        cd ../wrong
+        cd ../../ZJU_Compiler/ZJU_Compiler/test/wrong
         for file in `ls`
         do
           if [[ $file =~ ".c" ]];
@@ -64,7 +64,7 @@ jobs:
     - name: ok_test
       run: | 
         echo "test for ok"
-        cd ../ok
+        cd ../../ZJU_Compiler/ZJU_Compiler/test/ok
         for file in `ls`
         do
           if [[ $file =~ ".c" ]];
