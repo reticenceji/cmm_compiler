@@ -6,7 +6,7 @@ use inkwell::{
     context::Context,
     module::{Linkage, Module},
     targets::{CodeModel, FileType, InitializationConfig, RelocMode, Target, TargetMachine},
-    types::{BasicMetadataTypeEnum, BasicType, IntType},
+    types::{BasicMetadataTypeEnum, BasicType},
     values::{BasicValue, BasicValueEnum, FunctionValue, PointerValue},
     IntPredicate, OptimizationLevel,
 };
@@ -343,19 +343,26 @@ impl<'ctx> CodeBuilder<'ctx> {
 
                 self.builder.position_at_end(destination_block);
             }
-            AST::ReturnStmt(ret_value) => match ret_value {
-                Some(ast) => {
-                    let (type_, value) = self.gen_expression(ast)?;
-                    if type_ == self.current_function.unwrap().0 {
-                        self.builder.build_return(Some(&value));
-                    } else {
-                        Err(CodeGenErr::MismatchedTypeFunction)?
+            AST::ReturnStmt(ret_value) => {
+                let func_return_type = self.current_function.unwrap().0;
+                match ret_value {
+                    Some(ast) => {
+                        let (type_, value) = self.gen_expression(ast)?;
+                        if type_ == func_return_type {
+                            self.builder.build_return(Some(&value));
+                        } else {
+                            Err(CodeGenErr::MismatchedTypeFunction)?
+                        }
+                    }
+                    None => {
+                        if func_return_type == Type::Void {
+                            self.builder.build_return(None);
+                        } else {
+                            Err(CodeGenErr::MismatchedTypeFunction)?
+                        }
                     }
                 }
-                None => {
-                    self.builder.build_return(None);
-                }
-            },
+            }
             AST::AssignmentExpr(var, expr) => {
                 self.gen_assignment_expr(var, expr)?;
             }
@@ -572,12 +579,11 @@ impl<'ctx> CodeBuilder<'ctx> {
 
 #[cfg(test)]
 mod test_parse {
-    use std::ffi::OsStr;
     use std::{
         fs::{self, File},
         io::Read,
         os::unix::prelude::OsStringExt,
-        path::{Path, PathBuf},
+        path::Path,
     };
 
     use inkwell::context::Context;
