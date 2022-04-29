@@ -21,7 +21,7 @@ impl From<pest::error::Error<crate::parser::Rule>> for Error {
         };
         Self {
             position,
-            error: ErrorType::PestError,
+            error: ErrorType::PestError(e.to_string()),
         }
     }
 }
@@ -43,7 +43,7 @@ impl Display for Error {
                 ErrorType::MismatchedTypeFunction => "Mismatched type of Function's return type",
                 ErrorType::FunctionNotDefined => "Function has not been defined",
                 ErrorType::ExpressionVoidType => "Expression has void type",
-                ErrorType::PestError => "",
+                ErrorType::PestError(ref s) => s.as_str(),
             }
         )
     }
@@ -58,5 +58,5 @@ pub enum ErrorType {
     MismatchedTypeFunction,
     FunctionNotDefined,
     ExpressionVoidType,
-    PestError,
+    PestError(String),
 }
