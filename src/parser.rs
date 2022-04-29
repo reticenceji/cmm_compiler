@@ -6,12 +6,20 @@ use pest::{iterators::Pair, Parser};
 use std::borrow::Borrow;
 use sugars::boxed;
 
+use crate::error::Error;
+
 #[derive(Parser)]
 #[grammar = "grammar.pest"]
 pub struct CParser;
 
 #[derive(Debug)]
-pub enum AST {
+pub struct AST {
+    pub position: (usize, usize),
+    pub info: ASTInfo,
+}
+
+#[derive(Debug)]
+pub enum ASTInfo {
     /// type, name, params, block_statements: type name(params) {statements}
     FunctionDec(Type, String, Vec<(Type, String)>, Box<AST>),
     /// type, name
@@ -141,18 +149,23 @@ impl<'ctx> Type {
 impl AST {
     /// Turn the source code to AST,
     /// which can be serialized to json.
-    pub fn parse<T>(source_code: T) -> Vec<Self>
+    pub fn parse<T>(source_code: T) -> Result<Vec<Self>, Error>
     where
         T: Borrow<str>,
     {
-        let root = CParser::parse(Rule::program, source_code.borrow())
-            .unwrap()
-            .next()
-            .unwrap();
+        match CParser::parse(Rule::program, source_code.borrow()) {
+            Ok(mut root) => {
+                let root = root.next().unwrap();
+                let mut ast = vec![];
+                visit_program(root, &mut ast);
+                return Ok(ast);
+            }
+            Err(e) => Err(e.into()),
+        }
+    }
 
-        let mut ast = vec![];
-        visit_program(root, &mut ast);
-        return ast;
+    fn new(position: (usize, usize), info: ASTInfo) -> Self {
+        Self { position, info }
     }
 }
 
@@ -171,16 +184,21 @@ fn visit_program(pair: Pair<'_, Rule>, ast: &mut Vec<AST>) {
 }
 
 fn visit_func_declaration(pair: Pair<'_, Rule>, ast: &mut Vec<AST>) {
+    let position = pair.as_span().start_pos().line_col();
     let mut children = pair.into_inner();
     let type_spec = visit_type_spec(children.next().unwrap());
     let id = visit_id(children.next().unwrap());
     let params = visit_params(children.next().unwrap());
     let block_stmt = visit_block_stmt(children.next().unwrap());
 
-    ast.push(AST::FunctionDec(type_spec, id, params, boxed!(block_stmt)));
+    ast.push(AST::new(
+        position,
+        ASTInfo::FunctionDec(type_spec, id, params, boxed!(block_stmt)),
+    ));
 }
 
 fn visit_var_declaration(pair: Pair<'_, Rule>, ast: &mut Vec<AST>) {
+    let position = pair.as_span().start_pos().line_col();
     let mut children = pair.into_inner();
     let mut type_spec = visit_type_spec(children.next().unwrap());
     let id = visit_id(children.next().unwrap());
@@ -194,7 +212,7 @@ fn visit_var_declaration(pair: Pair<'_, Rule>, ast: &mut Vec<AST>) {
             _ => unreachable!(),
         }
     }
-    ast.push(AST::VariableDec(type_spec, id));
+    ast.push(AST::new(position, ASTInfo::VariableDec(type_spec, id)));
 }
 
 fn visit_int_literal(pair: Pair<'_, Rule>) -> i32 {
@@ -240,6 +258,7 @@ fn visit_param(pair: Pair<'_, Rule>) -> (Type, String) {
     (type_spec, id)
 }
 fn visit_block_stmt(pair: Pair<'_, Rule>) -> AST {
+    let position = pair.as_span().start_pos().line_col();
     let children = pair.into_inner();
     let mut vars = vec![];
     let mut statements = vec![];
@@ -250,10 +269,11 @@ fn visit_block_stmt(pair: Pair<'_, Rule>) -> AST {
             _ => unreachable!(),
         }
     }
-    AST::BlockStmt(vars, statements)
+    AST::new(position, ASTInfo::BlockStmt(vars, statements))
 }
 
 fn visit_statement(pair: Pair<'_, Rule>, ast: &mut Vec<AST>) {
+    let position = pair.as_span().start_pos().line_col();
     let children = pair.into_inner().next().unwrap();
     match children.as_rule() {
         Rule::block_stmt => {
@@ -292,10 +312,13 @@ fn visit_statement(pair: Pair<'_, Rule>, ast: &mut Vec<AST>) {
                     _ => unreachable!(),
                 }
             }
-            let statement = AST::SelectionStmt(
-                condition.unwrap(),
-                boxed!(if_statement.into_iter().next().unwrap()),
-                else_statement.into_iter().next().map(|x| boxed!(x)),
+            let statement = AST::new(
+                position,
+                ASTInfo::SelectionStmt(
+                    condition.unwrap(),
+                    boxed!(if_statement.into_iter().next().unwrap()),
+                    else_statement.into_iter().next().map(|x| boxed!(x)),
+                ),
             );
 
             ast.push(statement);
@@ -315,11 +338,11 @@ fn visit_statement(pair: Pair<'_, Rule>, ast: &mut Vec<AST>) {
                 }
             }
 
-            let statement = AST::IterationStmt(
+            let statement = ASTInfo::IterationStmt(
                 condition.unwrap(),
                 boxed!(loop_statement.into_iter().next().unwrap()),
             );
-            ast.push(statement);
+            ast.push(AST::new(position, statement));
         }
         Rule::return_stmt => {
             let children = children.into_inner();
@@ -331,8 +354,8 @@ fn visit_statement(pair: Pair<'_, Rule>, ast: &mut Vec<AST>) {
                 }
             }
 
-            let statement = AST::ReturnStmt(expression);
-            ast.push(statement);
+            let statement = ASTInfo::ReturnStmt(expression);
+            ast.push(AST::new(position, statement));
         }
         _ => unreachable!(),
     }
@@ -350,10 +373,11 @@ fn visit_expression(mut pair: Pair<'_, Rule>) -> AST {
 }
 
 fn visit_unary_expr(pair: Pair<'_, Rule>) -> AST {
+    let position = pair.as_span().start_pos().line_col();
     let child = pair.into_inner().next().unwrap();
     match child.as_rule() {
         Rule::var => visit_var(child),
-        Rule::int_literal => AST::IntLiteral(visit_int_literal(child)),
+        Rule::int_literal => AST::new(position, ASTInfo::IntLiteral(visit_int_literal(child))),
         Rule::call_expr => visit_call_expr(child),
         Rule::bracket_expr => visit_bracket_expr(child),
         _ => unreachable!(),
@@ -371,11 +395,12 @@ fn visit_bracket_expr(pair: Pair<'_, Rule>) -> AST {
 }
 
 fn visit_call_expr(pair: Pair<'_, Rule>) -> AST {
+    let position = pair.as_span().start_pos().line_col();
     let mut children = pair.into_inner();
     let id = visit_id(children.next().unwrap());
     let mut args = vec![];
     visit_args(children.next().unwrap(), &mut args);
-    AST::CallExpr(id, args)
+    AST::new(position, ASTInfo::CallExpr(id, args))
 }
 
 fn visit_args(pair: Pair<'_, Rule>, args: &mut Vec<AST>) {
@@ -388,14 +413,19 @@ fn visit_args(pair: Pair<'_, Rule>, args: &mut Vec<AST>) {
 }
 
 fn visit_assignment_expr(pair: Pair<'_, Rule>) -> AST {
+    let position = pair.as_span().start_pos().line_col();
     let mut children = pair.into_inner();
     let var = visit_var(children.next().unwrap());
     children.next();
     let expression = visit_expression(children.next().unwrap());
-    AST::AssignmentExpr(boxed!(var), boxed!(expression))
+    AST::new(
+        position,
+        ASTInfo::AssignmentExpr(boxed!(var), boxed!(expression)),
+    )
 }
 
 fn visit_var(pair: Pair<'_, Rule>) -> AST {
+    let position = pair.as_span().start_pos().line_col();
     let mut children = pair.into_inner();
     let id = children.next().unwrap().as_str().to_string();
     let mut expression = None;
@@ -404,10 +434,11 @@ fn visit_var(pair: Pair<'_, Rule>) -> AST {
             expression = Some(boxed!(visit_expression(node)));
         }
     }
-    AST::Variable(id, expression)
+    AST::new(position, ASTInfo::Variable(id, expression))
 }
 
 fn visit_binary_expr(pair: Pair<'_, Rule>) -> AST {
+    let position = pair.as_span().start_pos().line_col();
     let mut children = pair.into_inner();
     let mut lhs = visit_expression(children.next().unwrap());
 
@@ -435,7 +466,7 @@ fn visit_binary_expr(pair: Pair<'_, Rule>) -> AST {
         };
         expr = children.next().unwrap();
         let rhs = visit_expression(expr);
-        lhs = AST::BinaryExpr(op, boxed!(lhs), boxed!(rhs));
+        lhs = AST::new(position, ASTInfo::BinaryExpr(op, boxed!(lhs), boxed!(rhs)));
     }
     lhs
 }
