@@ -1,8 +1,11 @@
 [package]
 name = "cmm"
+authors = ["Ji Gaoqiang", "Wu Yifei", "Gao Chenxi"]
 version = "0.1.0"
 edition = "2021"
-
+description = "cmm is a simplified version of the C language introduced after the book \"Compiler Construction: Principles and Practice\"."
+license = "MIT OR Apache-2.0"
+readme = "report.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
