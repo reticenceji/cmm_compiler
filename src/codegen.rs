@@ -1,5 +1,5 @@
-use crate::parser::{Oprand, Type, AST};
-use anyhow::Result;
+use crate::error::{Error, ErrorType, Result};
+use crate::parser::{ASTInfo, Oprand, Type, AST};
 use either::Either;
 use inkwell::{
     builder::Builder,
@@ -11,27 +11,6 @@ use inkwell::{
     IntPredicate, OptimizationLevel,
 };
 use std::{borrow::Borrow, collections::HashMap, path::Path};
-use thiserror::Error;
-
-#[derive(Error, Debug)]
-enum CodeGenErr {
-    #[error("Variable redefinition")]
-    VariableRedefinition,
-    #[error("Index of array should be integer")]
-    IndexNotInt,
-    #[error("Variable has not been defined")]
-    VariableNotDefined,
-    #[error("Function redefinition")]
-    FunctionRedefinition,
-    #[error("Mismatched type")]
-    MismatchedType,
-    #[error("Mismatched type of Function's return type")]
-    MismatchedTypeFunction,
-    #[error("Function has not been defined")]
-    FunctionNotDefined,
-    #[error("Expression has void type")]
-    ExpressionVoidType,
-}
 
 pub struct CodeBuilder<'ctx> {
     /// A Context is a container for all LLVM entities including Modules.
@@ -128,20 +107,27 @@ impl<'ctx> CodeBuilder<'ctx> {
             .insert("output".to_string(), (Type::Void, output));
 
         for i in ast {
-            match i {
-                AST::FunctionDec(type_, name, params, body) => {
-                    self.gen_function(type_, name, params, body)?
+            match &i.info {
+                ASTInfo::FunctionDec(type_, name, params, body) => {
+                    self.gen_function(i.position, type_, name, params, body)?
                 }
-                AST::VariableDec(type_, name) => self.gen_global_variable(type_, name)?,
+                ASTInfo::VariableDec(type_, name) => {
+                    self.gen_global_variable(i.position, type_, name)?
+                }
                 _ => panic!(),
             }
         }
         Ok(())
     }
 
-    fn gen_global_variable(&mut self, type_: &Type, name: &str) -> Result<()> {
+    fn gen_global_variable(
+        &mut self,
+        position: (usize, usize),
+        type_: &Type,
+        name: &str,
+    ) -> Result<()> {
         if self.global_variables.contains_key(name) || self.global_functions.contains_key(name) {
-            Err(CodeGenErr::VariableRedefinition)?
+            Err(Error::new(position, ErrorType::VariableRedefinition))?
         }
         let v = self
             .module
@@ -154,13 +140,14 @@ impl<'ctx> CodeBuilder<'ctx> {
 
     fn gen_function(
         &mut self,
+        position: (usize, usize),
         type_: &Type,
         name: &str,
         params: &Vec<(Type, String)>,
         body: &AST,
     ) -> Result<()> {
         if self.global_variables.contains_key(name) || self.global_functions.contains_key(name) {
-            Err(CodeGenErr::FunctionRedefinition)?
+            Err(Error::new(position, ErrorType::FunctionRedefinition))?
         }
 
         let param_types: Vec<BasicMetadataTypeEnum<'ctx>> = params
@@ -209,12 +196,16 @@ impl<'ctx> CodeBuilder<'ctx> {
     }
 
     fn gen_block_stmt(&mut self, ast: &AST) -> Result<()> {
-        if let AST::BlockStmt(variables, statements) = ast {
+        let info = &ast.info;
+
+        if let ASTInfo::BlockStmt(variables, statements) = info {
             self.variables_stack.push(HashMap::new());
             for var in variables {
-                if let AST::VariableDec(type_, name) = var {
+                let var_position = var.position;
+                let var_info = &var.info;
+                if let ASTInfo::VariableDec(type_, name) = var_info {
                     if self.variables_stack.last().unwrap().contains_key(name) {
-                        Err(CodeGenErr::VariableRedefinition)?
+                        Err(Error::new(var_position, ErrorType::VariableRedefinition))?
                     };
                     let v = self
                         .builder
@@ -259,9 +250,9 @@ impl<'ctx> CodeBuilder<'ctx> {
         Ok(())
     }
     fn gen_statement(&mut self, stmt: &AST) -> Result<()> {
-        match stmt {
-            AST::BlockStmt(_, _) => self.gen_block_stmt(stmt)?,
-            AST::SelectionStmt(cond, then_stmt, else_stmt) => {
+        match &stmt.info {
+            ASTInfo::BlockStmt(_, _) => self.gen_block_stmt(stmt)?,
+            ASTInfo::SelectionStmt(cond, then_stmt, else_stmt) => {
                 let comparison = self.gen_expression(cond)?.1.into_int_value();
                 let comparison = self.builder.build_int_truncate(
                     comparison,
@@ -313,7 +304,7 @@ impl<'ctx> CodeBuilder<'ctx> {
 
                 self.builder.position_at_end(destination_block);
             }
-            AST::IterationStmt(cond, loop_stmt) => {
+            ASTInfo::IterationStmt(cond, loop_stmt) => {
                 let current_block = self.builder.get_insert_block().unwrap();
                 let loop_head = self
                     .context
@@ -343,7 +334,7 @@ impl<'ctx> CodeBuilder<'ctx> {
 
                 self.builder.position_at_end(destination_block);
             }
-            AST::ReturnStmt(ret_value) => {
+            ASTInfo::ReturnStmt(ret_value) => {
                 let func_return_type = self.current_function.unwrap().0;
                 match ret_value {
                     Some(ast) => {
@@ -351,26 +342,26 @@ impl<'ctx> CodeBuilder<'ctx> {
                         if type_ == func_return_type {
                             self.builder.build_return(Some(&value));
                         } else {
-                            Err(CodeGenErr::MismatchedTypeFunction)?
+                            Err(Error::new(ast.position, ErrorType::MismatchedTypeFunction))?
                         }
                     }
                     None => {
                         if func_return_type == Type::Void {
                             self.builder.build_return(None);
                         } else {
-                            Err(CodeGenErr::MismatchedTypeFunction)?
+                            Err(Error::new(stmt.position, ErrorType::MismatchedTypeFunction))?
                         }
                     }
                 }
             }
-            AST::AssignmentExpr(var, expr) => {
+            ASTInfo::AssignmentExpr(var, expr) => {
                 self.gen_assignment_expr(var, expr)?;
             }
-            AST::BinaryExpr(op, lhs, rhs) => {
+            ASTInfo::BinaryExpr(op, lhs, rhs) => {
                 self.gen_binary_expr(op, lhs, rhs)?;
             }
-            AST::CallExpr(name, argments) => {
-                self.gen_function_call(name, argments)?;
+            ASTInfo::CallExpr(name, argments) => {
+                self.gen_function_call(stmt.position, name, argments)?;
             }
             _ => unreachable!(),
         }
@@ -378,23 +369,24 @@ impl<'ctx> CodeBuilder<'ctx> {
     }
 
     fn gen_expression(&self, ast: &AST) -> Result<(Type, BasicValueEnum)> {
-        match ast {
-            AST::AssignmentExpr(var, expr) => self.gen_assignment_expr(var, expr),
-            AST::BinaryExpr(op, lhs, rhs) => self.gen_binary_expr(op, lhs, rhs),
-            AST::CallExpr(name, argments) => {
+        match &ast.info {
+            ASTInfo::AssignmentExpr(var, expr) => self.gen_assignment_expr(var, expr),
+            ASTInfo::BinaryExpr(op, lhs, rhs) => self.gen_binary_expr(op, lhs, rhs),
+            ASTInfo::CallExpr(name, argments) => {
                 // 在expression上下文中不应该返回void
-                let r = self.gen_function_call(name, argments);
+                let r = self.gen_function_call(ast.position, name, argments);
                 if r.is_ok() && r.as_ref().unwrap().0 == Type::Void {
-                    Err(CodeGenErr::ExpressionVoidType)?
+                    Err(Error::new(ast.position, ErrorType::ExpressionVoidType))?
                 }
                 r
             }
-            AST::Variable(name, index) => {
-                let (type_, ptr) = self.gen_variable(name, &index.as_ref().map(|x| x.as_ref()))?;
+            ASTInfo::Variable(name, index) => {
+                let (type_, ptr) =
+                    self.gen_variable(ast.position, name, &index.as_ref().map(|x| x.as_ref()))?;
                 let value = self.builder.build_load(ptr, "");
                 Ok((type_, value))
             }
-            AST::IntLiteral(value) => Ok((
+            ASTInfo::IntLiteral(value) => Ok((
                 Type::Int,
                 self.context
                     .i32_type()
@@ -482,7 +474,12 @@ impl<'ctx> CodeBuilder<'ctx> {
         Ok((Type::Int, value))
     }
 
-    fn gen_function_call(&self, name: &str, argments: &Vec<AST>) -> Result<(Type, BasicValueEnum)> {
+    fn gen_function_call(
+        &self,
+        position: (usize, usize),
+        name: &str,
+        argments: &Vec<AST>,
+    ) -> Result<(Type, BasicValueEnum)> {
         let mut args = Vec::new();
         for argment in argments {
             let arg = self.gen_expression(argment)?.1;
@@ -497,7 +494,7 @@ impl<'ctx> CodeBuilder<'ctx> {
                         if value.get_type() == type_.to_llvm_basic_type(self.context) {
                             return Ok((*type_, value));
                         } else {
-                            Err(CodeGenErr::MismatchedType)?
+                            Err(Error::new(position, ErrorType::MismatchedType))?
                         }
                     }
                     Either::Right(_) => Ok((
@@ -509,30 +506,37 @@ impl<'ctx> CodeBuilder<'ctx> {
                     )),
                 }
             }
-            None => Err(CodeGenErr::FunctionNotDefined)?,
+            None => Err(Error::new(position, ErrorType::FunctionNotDefined))?,
         }
     }
 
     fn gen_assignment_expr(&self, var: &AST, expr: &AST) -> Result<(Type, BasicValueEnum)> {
-        if let AST::Variable(name, index) = var {
-            let (type_left, ptr) = self.gen_variable(name, &index.as_ref().map(|x| x.as_ref()))?;
+        let var_info = &var.info;
+        if let ASTInfo::Variable(name, index) = var_info {
+            let (type_left, ptr) =
+                self.gen_variable(var.position, name, &index.as_ref().map(|x| x.as_ref()))?;
             let (type_right, value) = self.gen_expression(expr)?;
             if type_left == type_right {
                 self.builder.build_store(ptr, value);
                 Ok((type_left, value.as_basic_value_enum()))
             } else {
-                Err(CodeGenErr::MismatchedType)?
+                Err(Error::new(var.position, ErrorType::MismatchedType))?
             }
         } else {
             unreachable!()
         }
     }
 
-    fn gen_variable(&self, name: &str, index: &Option<&AST>) -> Result<(Type, PointerValue)> {
-        let (type_, ptr) = self.get_name_ptr(name)?;
+    fn gen_variable(
+        &self,
+        position: (usize, usize),
+        name: &str,
+        index: &Option<&AST>,
+    ) -> Result<(Type, PointerValue)> {
+        let (type_, ptr) = self.get_name_ptr(position, name)?;
         match type_ {
             Type::Int => Ok((type_, ptr)),
-            Type::Void => Err(CodeGenErr::ExpressionVoidType)?,
+            Type::Void => Err(Error::new(position, ErrorType::ExpressionVoidType))?,
             Type::IntPtr => {
                 if let Some(index) = index {
                     let (index_type, index) = self.gen_expression(index)?;
@@ -547,7 +551,7 @@ impl<'ctx> CodeBuilder<'ctx> {
                             Ok((Type::Int, ptr))
                         }
                     } else {
-                        Err(CodeGenErr::IndexNotInt)?
+                        Err(Error::new(position, ErrorType::IndexNotInt))?
                     }
                 } else {
                     Ok((type_, ptr))
@@ -557,7 +561,7 @@ impl<'ctx> CodeBuilder<'ctx> {
         }
     }
 
-    fn get_name_ptr(&self, name: &str) -> Result<(Type, PointerValue)> {
+    fn get_name_ptr(&self, position: (usize, usize), name: &str) -> Result<(Type, PointerValue)> {
         for domain in self.variables_stack.iter().rev() {
             if let Some(ptr) = domain.get(name) {
                 return Ok(*ptr);
@@ -566,7 +570,7 @@ impl<'ctx> CodeBuilder<'ctx> {
         if let Some(ptr) = self.global_variables.get(name) {
             return Ok(*ptr);
         }
-        Err(CodeGenErr::VariableNotDefined)?
+        Err(Error::new(position, ErrorType::VariableNotDefined))?
     }
     fn no_terminator(&self) -> bool {
         self.builder
@@ -602,7 +606,7 @@ mod test_parse {
                 let mut buf = String::new();
                 file.read_to_string(&mut buf).unwrap();
 
-                let ast = super::AST::parse(buf);
+                let ast = super::AST::parse(buf).unwrap();
                 let context = Context::create();
                 let codegen =
                     CodeBuilder::new(&context, "test", &ast).expect("Source code file test failed");

@@ -3,19 +3,17 @@
 #[macro_use]
 extern crate pest_derive;
 
-mod ast_viz;
+// mod ast_viz;
 mod codegen;
+mod error;
 mod parser;
 
-use crate::{ast_viz::DiGraph, codegen::CodeBuilder, parser::AST};
+use crate::codegen::CodeBuilder;
 use clap::Parser;
 use inkwell::context::Context;
-use std::{
-    fs::File,
-    io::{Read, Write},
-    path::Path,
-};
-
+use parser::AST;
+use std::process::exit;
+use std::{fs::File, io::Read, path::Path};
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
@@ -38,22 +36,35 @@ fn main() {
         .expect("Unable to read the file!");
 
     let prefix = args.file.strip_suffix(".c").unwrap_or(args.file.as_str());
-    let ast = AST::parse(source_code);
+    let context = Context::create();
 
-    // Generate dot file
-    if let Some(dotfile) = args.dotfile {
-        let dot_cont = DiGraph::new(&args.file, &ast).write_dot();
-        let mut file = File::create(&dotfile).expect("Unable to create a dot file!");
-        file.write_all(dot_cont.as_bytes())
-            .expect("Unable to write dot file!");
+    match AST::parse(source_code) {
+        Ok(ast) => match CodeBuilder::new(&context, args.file.as_str(), &ast) {
+            Ok(codebuilder) => {
+                codebuilder.build_llvmir(Path::new(&format!("{}.ll", prefix)));
+                codebuilder.build_asm(Path::new(&format!("{}.s", prefix)));
+            }
+            Err(e) => {
+                eprintln!("Error: {}", e);
+                exit(1);
+            }
+        },
+        Err(e) => {
+            eprintln!("Error: {}", e);
+            exit(1);
+        }
     }
 
+    // Generate dot file
+    // if let Some(dotfile) = args.dotfile {
+    //     let dot_cont = DiGraph::new(&args.file, &ast).write_dot();
+    //     let mut file = File::create(&dotfile).expect("Unable to create a dot file!");
+    //     file.write_all(dot_cont.as_bytes())
+    //         .expect("Unable to write dot file!");
+    // }
+
     // A Context is a container for all LLVM entities including Modules.
-    let context = Context::create();
-    let codegen = CodeBuilder::new(&context, args.file.as_str(), &ast).unwrap();
 
     // Now we build asm file, llvm-ir file and print json AST.
     // After we will make it chosable.
-    codegen.build_llvmir(Path::new(&format!("{}.ll", prefix)));
-    codegen.build_asm(Path::new(&format!("{}.s", prefix)));
 }
