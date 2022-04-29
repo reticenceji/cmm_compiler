@@ -12,8 +12,8 @@ use crate::codegen::CodeBuilder;
 use clap::Parser;
 use inkwell::context::Context;
 use parser::AST;
+use std::process::exit;
 use std::{fs::File, io::Read, path::Path};
-
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
@@ -44,9 +44,15 @@ fn main() {
                 codebuilder.build_llvmir(Path::new(&format!("{}.ll", prefix)));
                 codebuilder.build_asm(Path::new(&format!("{}.s", prefix)));
             }
-            Err(e) => eprintln!("Error: {}", e),
+            Err(e) => {
+                eprintln!("Error: {}", e);
+                exit(1);
+            }
         },
-        Err(e) => eprintln!("Error: {}", e),
+        Err(e) => {
+            eprintln!("Error: {}", e);
+            exit(1);
+        }
     }
 
     // Generate dot file
