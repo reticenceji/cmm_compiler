@@ -3,17 +3,20 @@
 #[macro_use]
 extern crate pest_derive;
 
-// mod ast_viz;
+mod ast_viz;
 mod codegen;
 mod error;
 mod parser;
 
 use crate::codegen::CodeBuilder;
+use ast_viz::DiGraph;
 use clap::Parser;
 use inkwell::context::Context;
 use parser::AST;
+use std::io::Write;
 use std::process::exit;
 use std::{fs::File, io::Read, path::Path};
+
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
@@ -43,6 +46,14 @@ fn main() {
             Ok(codebuilder) => {
                 codebuilder.build_llvmir(Path::new(&format!("{}.ll", prefix)));
                 codebuilder.build_asm(Path::new(&format!("{}.s", prefix)));
+
+                // Generate dot file
+                if let Some(dotfile) = args.dotfile {
+                    let dot_cont = DiGraph::new(&args.file, &ast).write_dot();
+                    let mut file = File::create(&dotfile).expect("Unable to create a dot file!");
+                    file.write_all(dot_cont.as_bytes())
+                        .expect("Unable to write dot file!");
+                }
             }
             Err(e) => {
                 eprintln!("Error: {}", e);
@@ -54,14 +65,6 @@ fn main() {
             exit(1);
         }
     }
-
-    // Generate dot file
-    // if let Some(dotfile) = args.dotfile {
-    //     let dot_cont = DiGraph::new(&args.file, &ast).write_dot();
-    //     let mut file = File::create(&dotfile).expect("Unable to create a dot file!");
-    //     file.write_all(dot_cont.as_bytes())
-    //         .expect("Unable to write dot file!");
-    // }
 
     // A Context is a container for all LLVM entities including Modules.
 

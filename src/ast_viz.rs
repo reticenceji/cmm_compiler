@@ -1,5 +1,5 @@
 //! Abstract Syntax Tree Visualizer
-use crate::parser::AST;
+use crate::parser::{AST, ASTInfo};
 use lazy_static::lazy_static;
 use std::sync::Mutex;
 
@@ -139,8 +139,8 @@ impl DiGraph {
     }
 
     fn parse_ast(&mut self, ast: &AST) {
-        match ast {
-            AST::FunctionDec(ftype, name, params, box ast) => {
+        match &ast.info {
+            ASTInfo::FunctionDec(ftype, name, params, box ast) => {
                 self.name = Some("FunctionDec".to_string());
                 let node_type = Node::new_symbol(&ftype.to_string());
                 let node_name = Node::new_symbol(name);
@@ -174,7 +174,7 @@ impl DiGraph {
                 self.add_cont(Content::Edge(Edge::new(&self, &node)));
                 self.add_cont(Content::Node(node));
             }
-            AST::VariableDec(vtype, name) => {
+            ASTInfo::VariableDec(vtype, name) => {
                 self.name = Some("VariableDec".to_string());
                 let node_type = Node::new_symbol(&vtype.to_string());
                 let node_name = Node::new_symbol(name);
@@ -184,7 +184,7 @@ impl DiGraph {
                 self.add_cont(Content::Node(node_type));
                 self.add_cont(Content::Node(node_name));
             }
-            AST::BlockStmt(ast1, ast2) => {
+            ASTInfo::BlockStmt(ast1, ast2) => {
                 self.name = Some("BlockStmt".to_string());
                 for ast in ast1 {
                     let subg = DiGraph::from_ast(ast);
@@ -202,7 +202,7 @@ impl DiGraph {
                     self.add_cont(Content::Node(node));
                 }
             }
-            AST::SelectionStmt(box ast1, box ast2, ast3) => {
+            ASTInfo::SelectionStmt(box ast1, box ast2, ast3) => {
                 self.name = Some("SelectionStmt".to_string());
 
                 // If {cond} {expr}
@@ -228,7 +228,7 @@ impl DiGraph {
                     self.add_cont(Content::Node(false_node));
                 }
             }
-            AST::IterationStmt(box ast1, box ast2) => {
+            ASTInfo::IterationStmt(box ast1, box ast2) => {
                 self.name = Some("IterationStmt".to_string());
 
                 let while_node = Node::new_symbol("while");
@@ -242,7 +242,7 @@ impl DiGraph {
                 self.add_cont(Content::Node(cond_node));
                 self.add_cont(Content::Node(expr_node));
             }
-            AST::ReturnStmt(ast) => {
+            ASTInfo::ReturnStmt(ast) => {
                 self.name = Some("ReturnStmt".to_string());
 
                 let return_node = Node::new_symbol("return");
@@ -257,7 +257,7 @@ impl DiGraph {
                     self.add_cont(Content::Node(retval_node));
                 }
             }
-            AST::AssignmentExpr(box ast1, box ast2) => {
+            ASTInfo::AssignmentExpr(box ast1, box ast2) => {
                 self.name = Some("AssignmentExpr".to_string());
 
                 let var_node = Node::new_subg(DiGraph::from_ast(ast1));
@@ -271,7 +271,7 @@ impl DiGraph {
                 self.add_cont(Content::Node(equal_node));
                 self.add_cont(Content::Node(expr_node));
             }
-            AST::BinaryExpr(oprand, box ast1, box ast2) => {
+            ASTInfo::BinaryExpr(oprand, box ast1, box ast2) => {
                 self.name = Some("BinaryExpr".to_string());
                 let op_node = Node::new_symbol(&oprand.to_string());
                 let lval = Node::new_subg(DiGraph::from_ast(ast1));
@@ -284,7 +284,7 @@ impl DiGraph {
                 self.add_cont(Content::Node(lval));
                 self.add_cont(Content::Node(rval));
             }
-            AST::CallExpr(name, params) => {
+            ASTInfo::CallExpr(name, params) => {
                 self.name = Some("CallExpr".to_string());
 
                 let name_node = Node::new_symbol(name);
@@ -308,7 +308,7 @@ impl DiGraph {
                     self.add_cont(Content::Node(node));
                 }
             }
-            AST::Variable(name, ast) => {
+            ASTInfo::Variable(name, ast) => {
                 self.name = Some("Variable".to_string());
 
                 let name_node = Node::new_symbol(name);
@@ -331,7 +331,7 @@ impl DiGraph {
                     self.add_cont(Content::Node(node));
                 }
             }
-            AST::IntLiteral(val) => {
+            ASTInfo::IntLiteral(val) => {
                 self.name = Some("IntLiteral".to_string());
 
                 let int_node = Node::new_symbol(&val.to_string());

@@ -57,7 +57,7 @@ dot dotfile -T png -o ast.png
 ## TODO
 
 - [x] `input`和 `output`函数。
-- [ ] 完整的测试。
+- [x] 完整的测试。
 - [ ] 代码优化。
 - [x] 现在不能有全局变量，需要修复。
 - [ ] 文档。
