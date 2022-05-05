@@ -94,7 +94,7 @@ keyword = {
     "do"
 }
 
-WHITESPACE = _{ " " | "\n" | "\r" }
+WHITESPACE = _{ " " | "\n" | "\r" | "\t" }
 COMMENT = _{
     ("/*" ~ (!"*/" ~ ANY)* ~ "*/") // Block comment
     | ("//" ~ (!"\n" ~ ANY)* ~ ("\n" | EOI)) // Line comment
