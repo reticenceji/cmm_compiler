@@ -11,7 +11,7 @@ cargo build --release
 运行：
 
 ```shell
-./cmm --file <source file>
+cmm <source file>
 ```
 
 然后利用本地的编译器进行编译即可，如：
@@ -39,6 +39,11 @@ clang io.c test.s
 - basic alias analysis
 - promote memory to register
 
+如果要进行优化，使用 `--opt` 选项：
+```shell
+cmm test/opt/test1.c -opt
+```
+
 ## 代码生成
 
 使用 [LLVM](https://llvm.org/) 的Rust binding [inkwell](https://github.com/TheDan64/inkwell)。
@@ -50,7 +55,7 @@ clang io.c test.s
 
 生成 dot 文件：
 ```shell
-cmm --file <soruce file> --dotfile <dot file>
+cmm <soruce file> --dotfile <dot file>
 ```
 
 从 dot 文件生成 png 图片：
@@ -60,7 +65,7 @@ dot <dotfile> -T png -o dot.png
 
 例如，生成 [test.c](test/ok/test.c) 的 ast 可视化文件：
 ```shell
-cmm --file test/ok/test.c --dotfile ./dotfile
+cmm test/ok/test.c --dotfile ./dotfile
 dot dotfile -T png -o ast.png
 ```
 ![](ast.png)

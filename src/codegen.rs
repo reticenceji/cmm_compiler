@@ -1,3 +1,4 @@
+use crate::Args;
 use crate::error::{Error, ErrorType, Result};
 use crate::parser::{ASTInfo, Oprand, Type, AST};
 use either::Either;
@@ -34,11 +35,11 @@ pub struct CodeBuilder<'ctx> {
     /// The function that code builder is generating.
     current_function: Option<(Type, FunctionValue<'ctx>)>,
     /// For optimize
-    fpm: PassManager<FunctionValue<'ctx>>
+    fpm: Option<PassManager<FunctionValue<'ctx>>>
 }
 
 impl<'ctx> CodeBuilder<'ctx> {
-    pub fn new<T>(context: &'ctx Context, name: T, ast: &Vec<AST>) -> Result<Self>
+    pub fn new<T>(context: &'ctx Context, name: T, ast: &Vec<AST>, opt: bool) -> Result<Self>
     where
         T: Borrow<str>,
     {
@@ -46,16 +47,21 @@ impl<'ctx> CodeBuilder<'ctx> {
         let module = context.create_module(name.borrow());
 
         // Create FPM
-        let fpm = PassManager::create(&module);
+        let mut fpm = None;
+        if opt {
+            let temp = PassManager::create(&module);
 
-        fpm.add_instruction_combining_pass();
-        fpm.add_reassociate_pass();
-        fpm.add_gvn_pass();
-        fpm.add_cfg_simplification_pass();
-        fpm.add_basic_alias_analysis_pass();
-        fpm.add_promote_memory_to_register_pass();
+            temp.add_instruction_combining_pass();
+            temp.add_reassociate_pass();
+            temp.add_gvn_pass();
+            temp.add_cfg_simplification_pass();
+            temp.add_basic_alias_analysis_pass();
+            temp.add_promote_memory_to_register_pass();
 
-        fpm.initialize();
+            temp.initialize();
+            fpm = Some(temp)
+        }
+
 
         let mut codegen = Self {
             context,
@@ -210,7 +216,9 @@ impl<'ctx> CodeBuilder<'ctx> {
         self.variables_stack.pop();
 
         // Optimize on function level
-        self.fpm.run_on(&function);
+        if let Some(fpm) = &self.fpm {
+            fpm.run_on(&function);
+        }
         Ok(())
     }
 
@@ -630,7 +638,7 @@ mod test_parse {
                 let ast = super::AST::parse(buf).unwrap();
                 let context = Context::create();
                 let codegen =
-                    CodeBuilder::new(&context, "test", &ast).expect("Source code file test failed");
+                    CodeBuilder::new(&context, "test", &ast, false).expect("Source code file test failed");
                 codegen.build_llvmir(Path::new("test.ll"));
             }
         }

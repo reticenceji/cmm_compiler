@@ -21,11 +21,13 @@ use std::{fs::File, io::Read, path::Path};
 #[clap(author, version, about, long_about = None)]
 struct Args {
     /// file name to compile
-    #[clap(short, long)]
     file: String,
     /// visualize ast as dot file
     #[clap(short, long)]
     dotfile: Option<String>,
+    /// Optimize the code
+    #[clap(long)]
+    opt: bool
 }
 
 fn main() {
@@ -42,7 +44,7 @@ fn main() {
     let context = Context::create();
 
     match AST::parse(source_code) {
-        Ok(ast) => match CodeBuilder::new(&context, args.file.as_str(), &ast) {
+        Ok(ast) => match CodeBuilder::new(&context, args.file.as_str(), &ast, args.opt) {
             Ok(codebuilder) => {
                 codebuilder.build_llvmir(Path::new(&format!("{}.ll", prefix)));
                 codebuilder.build_asm(Path::new(&format!("{}.s", prefix)));

@@ -1,10 +1,12 @@
-# Cmm编译器设计报告
+# Cmm 编译器设计报告
 
-季高强 吴逸飞 高晨熙
+> 季高强 吴逸飞 高晨熙
+
+[TOC]
 
 ## 序言
 
-Cmm(C minus minus)编译器是《Compiler Construction: Principles and Practice》书附录介绍的一个精简版的C语言的实现，在书附录的基础上，添加了一些额外的特性。实现的功能包括：
+Cmm(C minus minus) 编译器是《Compiler Construction: Principles and Practice》书附录介绍的一个精简版的 C 语言的实现，在书附录的基础上，添加了一些额外的特性。实现的功能包括：
 
 1. 全局变量和局部变量的声明功能，函数定义功能。
 2. 逻辑运算，位移运算，四则运算和取模运算，比较运算，赋值运算的支持。
@@ -12,7 +14,7 @@ Cmm(C minus minus)编译器是《Compiler Construction: Principles and Practice�
 4. 类型检查，并在特定条件下进行隐式类型转换。
 5. 给出编译过程中，具体的报错产生原因。
 6. 语法树的可视化。
-7. 
+7. 生成代码优化。
 
 ### 代码结构说明
 
@@ -204,6 +206,10 @@ pub struct CodeBuilder<'ctx> {
 | 生成赋值表达式     | `gen_assignment_expr` | 1. 查变量表找到变量<br />2. 将右值赋值给变量，右值是表达式,调用`gen_expression` |
 
 ## 代码优化
+代码优化考虑使用 LLVM 的 [Pass](https://llvm.org/docs/Passes.html) 进行优化，这里采用的优化是基于函数的优化，即优化的单位是函数而不是整个文件程序。
+
+
+## AST 可视化
+
 
 ## 测试案例
-
