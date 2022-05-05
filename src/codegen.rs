@@ -1,4 +1,3 @@
-use crate::Args;
 use crate::error::{Error, ErrorType, Result};
 use crate::parser::{ASTInfo, Oprand, Type, AST};
 use either::Either;
@@ -6,11 +5,11 @@ use inkwell::{
     builder::Builder,
     context::Context,
     module::{Linkage, Module},
+    passes::PassManager,
     targets::{CodeModel, FileType, InitializationConfig, RelocMode, Target, TargetMachine},
     types::{BasicMetadataTypeEnum, BasicType},
     values::{BasicValue, BasicValueEnum, FunctionValue, PointerValue},
     IntPredicate, OptimizationLevel,
-    passes::PassManager
 };
 use std::{borrow::Borrow, collections::HashMap, path::Path};
 
@@ -35,7 +34,7 @@ pub struct CodeBuilder<'ctx> {
     /// The function that code builder is generating.
     current_function: Option<(Type, FunctionValue<'ctx>)>,
     /// For optimize
-    fpm: Option<PassManager<FunctionValue<'ctx>>>
+    fpm: Option<PassManager<FunctionValue<'ctx>>>,
 }
 
 impl<'ctx> CodeBuilder<'ctx> {
@@ -62,7 +61,6 @@ impl<'ctx> CodeBuilder<'ctx> {
             fpm = Some(temp)
         }
 
-
         let mut codegen = Self {
             context,
             module,
@@ -71,7 +69,7 @@ impl<'ctx> CodeBuilder<'ctx> {
             variables_stack: Vec::new(),
             global_functions: HashMap::new(),
             current_function: None,
-            fpm
+            fpm,
         };
 
         codegen.generate(ast)?;
@@ -637,8 +635,8 @@ mod test_parse {
 
                 let ast = super::AST::parse(buf).unwrap();
                 let context = Context::create();
-                let codegen =
-                    CodeBuilder::new(&context, "test", &ast, false).expect("Source code file test failed");
+                let codegen = CodeBuilder::new(&context, "test", &ast, false)
+                    .expect("Source code file test failed");
                 codegen.build_llvmir(Path::new("test.ll"));
             }
         }
