@@ -27,7 +27,7 @@ jobs:
         do
           if [[ $file =~ ".c" ]];
           then
-            ../../target/debug/cmm --file $file
+            ../../target/debug/cmm $file
             clang ../../src/io.c `echo $file | sed 's/\.c//'`.s -o a.out
             echo $file"================\n"
             cat input.txt | ./a.out | diff - output.txt
@@ -41,7 +41,7 @@ jobs:
         do
           if [[ $file =~ ".c" ]];
           then
-            ../../target/debug/cmm --file $file
+            ../../target/debug/cmm $file
             clang ../../src/io.c `echo $file | sed 's/\.c//'`.s -o a.out
             echo $file"================\n"
             ./a.out | diff - `echo $file | sed 's/\.c//'`_out.txt
@@ -56,7 +56,7 @@ jobs:
           if [[ $file =~ ".c" ]];
           then
             echo $file"================\n"
-            if ../../target/debug/cmm --file $file;then 
+            if ../../target/debug/cmm $file;then 
               echo "wrong"
               exit 1
             else
@@ -73,7 +73,7 @@ jobs:
           if [[ $file =~ ".c" ]];
           then
             echo $file"================"
-            if ../../target/debug/cmm --file $file;then 
+            if ../../target/debug/cmm $file;then 
               echo "right"
             else
               echo "wrong"
