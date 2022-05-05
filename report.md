@@ -12,7 +12,7 @@ Cmm(C minus minus) 编译器是《Compiler Construction: Principles and Practice
 2. 逻辑运算，位移运算，四则运算和取模运算，比较运算，赋值运算的支持。
 3. 作用域的管理，允许内部作用域的同名变量临时覆盖外部作用域的同名变量。
 4. 类型检查，并在特定条件下进行隐式类型转换。
-5. 给出编译过程中，具体的报错产生原因。
+5. 给出编译过程中，具体的报错产生原因和代码位置。
 6. 语法树的可视化。
 7. 生成代码优化。
 
@@ -122,7 +122,7 @@ Pest用`Pair`表示parsing tree的节点。每个节点的类型可以通过`Pai
 通过对parsing tree的进一步解析和精简，我们生成abstract syntax tree。我们将程序的语法树定义为`Vec<AST>`类型。AST的每个节点类型在下面列出。利用Rust语言特殊的`Enum`类型，我们可以将每个节点的属性及子节点和类型绑定在一起。例如，`FunctionDec`代表函数节点，函数的属性包括函数的返回值类型、函数名、函数的参数列表，子节点就是函数体。
 
 ```rust
-pub enum AST {
+pub enum ASTInfo {
     FunctionDec(Type, String, Vec<(Type, String)>, Box<AST>),
     VariableDec(Type, String),
 
@@ -205,11 +205,38 @@ pub struct CodeBuilder<'ctx> {
 | 生成函数调用表达式 | `gen_function_call`   | 1. 准备参数，参数是表达式，调用`gen_expression`<br />2. 构造函数调用语句<br />3. 检查函数的返回值类型是否匹配 |
 | 生成赋值表达式     | `gen_assignment_expr` | 1. 查变量表找到变量<br />2. 将右值赋值给变量，右值是表达式,调用`gen_expression` |
 
+## 错误处理
+
+编译器应该给出合适的报错信息，让用户可以修改源代码中的错误。我们将错误分成两种类型，一个是词法/语法分析时候发现的错误，一个是语义检查发现的错误。
+
+对于词法/语法分析发现的错误，使用的Pest已经提供了较好的支持，我们可以直接利用他提供的错误信息进行一定的处理返回给用户。
+
+对于语义检查发现的错误，我们分析错误的原因，利用保存在语法树中的位置信息，向用户报告错误的原因和位置。我们定义了以下错误类型
+
+```rust
+pub enum ErrorType {
+    VariableRedefinition,    // 变量重定义
+    IndexNotInt,             // 数组的索引不是整数类型
+    VariableNotDefined,      // 变量未定义
+    FunctionRedefinition,    // 函数重定义
+    MismatchedType,          // 表达式的类型不匹配
+    MismatchedTypeFunction,  // 函数的返回值不匹配
+    FunctionNotDefined,      // 函数未定义
+    ExpressionVoidType,      // 在需要表达式的地方使用了返回值为void的函数
+    PestError(String),       // 词法分析错误和语法分析错误
+}
+```
+
 ## 代码优化
+
 代码优化考虑使用 LLVM 的 [Pass](https://llvm.org/docs/Passes.html) 进行优化，这里采用的优化是基于函数的优化，即优化的单位是函数而不是整个文件程序。
 
 
 ## AST 可视化
 
-
 ## 测试案例
+
+
+
+
+
