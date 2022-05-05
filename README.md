@@ -2,35 +2,46 @@
 
 C-是《Compiler Construction: Principles and Practice》书后介绍的一个精简版的C语言。
 
-To build:
+构建：
 
 ```shell
 cargo build --release
 ```
 
-To run
+运行：
 
 ```shell
 ./cmm --file <source file>
 ```
 
-Then compile the .s file with your local compiler, such as
+然后利用本地的编译器进行编译即可，如：
 
 ```
 clang io.c test.s
 ```
 
+> 本项目只实现到汇编代码的生成，从汇编到机器码是机械的翻译过程，并不予以实现。
+
 ## 词法分析&语法分析
 
-使用[PEST](https://pest.rs/)提供的[Parsing expression grammars](https://pest.rs/book/grammars/peg.html)，来对词法和语法进行描述。
+使用 [PEST](https://pest.rs/) 提供的 [Parsing expression grammars](https://pest.rs/book/grammars/peg.html)，来对词法和语法进行描述。
 
 ## 语义分析
 
 ## 代码优化
+使用 [PassManager](https://thedan64.github.io/inkwell/inkwell/passes/struct.PassManager.html)，基于函数进行优化。
+
+优化包括：
+- instruction combining
+- reassociate
+- GVN
+- CFG simplification
+- basic alias analysis
+- promote memory to register
 
 ## 代码生成
 
-使用[LLVM]的Rust binding [inkwell](https://github.com/TheDan64/inkwell)。
+使用 [LLVM](https://llvm.org/) 的Rust binding [inkwell](https://github.com/TheDan64/inkwell)。
 
 ## 测试
 
@@ -58,8 +69,8 @@ dot dotfile -T png -o ast.png
 
 - [x] `input`和 `output`函数。
 - [x] 完整的测试。
-- [ ] 代码优化。
+- [x] 代码优化。
 - [x] 现在不能有全局变量，需要修复。
-- [ ] 文档。
+- [x] 文档。
 - [x] 语法树的可视化。
-- [ ] 执行环境。
+- [x] 执行环境。

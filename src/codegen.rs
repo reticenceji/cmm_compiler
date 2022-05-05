@@ -9,6 +9,7 @@ use inkwell::{
     types::{BasicMetadataTypeEnum, BasicType},
     values::{BasicValue, BasicValueEnum, FunctionValue, PointerValue},
     IntPredicate, OptimizationLevel,
+    passes::PassManager
 };
 use std::{borrow::Borrow, collections::HashMap, path::Path};
 
@@ -32,6 +33,8 @@ pub struct CodeBuilder<'ctx> {
     variables_stack: Vec<HashMap<String, (Type, PointerValue<'ctx>)>>,
     /// The function that code builder is generating.
     current_function: Option<(Type, FunctionValue<'ctx>)>,
+    /// For optimize
+    fpm: PassManager<FunctionValue<'ctx>>
 }
 
 impl<'ctx> CodeBuilder<'ctx> {
@@ -42,6 +45,18 @@ impl<'ctx> CodeBuilder<'ctx> {
         let builder = context.create_builder();
         let module = context.create_module(name.borrow());
 
+        // Create FPM
+        let fpm = PassManager::create(&module);
+
+        fpm.add_instruction_combining_pass();
+        fpm.add_reassociate_pass();
+        fpm.add_gvn_pass();
+        fpm.add_cfg_simplification_pass();
+        fpm.add_basic_alias_analysis_pass();
+        fpm.add_promote_memory_to_register_pass();
+
+        fpm.initialize();
+
         let mut codegen = Self {
             context,
             module,
@@ -50,6 +65,7 @@ impl<'ctx> CodeBuilder<'ctx> {
             variables_stack: Vec::new(),
             global_functions: HashMap::new(),
             current_function: None,
+            fpm
         };
 
         codegen.generate(ast)?;
@@ -192,6 +208,9 @@ impl<'ctx> CodeBuilder<'ctx> {
         }
 
         self.variables_stack.pop();
+
+        // Optimize on function level
+        self.fpm.run_on(&function);
         Ok(())
     }
 
@@ -249,6 +268,7 @@ impl<'ctx> CodeBuilder<'ctx> {
         }
         Ok(())
     }
+
     fn gen_statement(&mut self, stmt: &AST) -> Result<()> {
         match &stmt.info {
             ASTInfo::BlockStmt(_, _) => self.gen_block_stmt(stmt)?,
@@ -572,6 +592,7 @@ impl<'ctx> CodeBuilder<'ctx> {
         }
         Err(Error::new(position, ErrorType::VariableNotDefined))?
     }
+
     fn no_terminator(&self) -> bool {
         self.builder
             .get_insert_block()
