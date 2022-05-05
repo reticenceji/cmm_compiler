@@ -6,7 +6,7 @@ test: *.c
 	for cfile in $^ ; do \
 		$(CC) $$cfile; \
 		$(CLANG) $(IO_C) `echo $$cfile | sed 's/\.c//'`.s -o a.out;\
-		echo $$cfile"================\n";\
+		echo "================"$$cfile"================";\
 		cat input.txt | ./a.out | diff - output.txt; \
 	done
 	
