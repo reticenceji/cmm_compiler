@@ -34,7 +34,7 @@ assets = [
     ],
     [
         "src/io.c",
-        "usr/lib/cmm/io",
+        "usr/lib/cmm/io.c",
         "644",
     ],
 ]

@@ -71,11 +71,11 @@ fn main() {
                     (false, false) => {
                         let tmpfile = format!("{}.s", filename);
                         let io_c = if std::fs::try_exists("/usr/lib/cmm/io.c").is_ok_and(|b| *b) {
-                            "/usr/lib/cmm/io"
-                        } else if std::fs::try_exists("./io").is_ok_and(|b| *b) {
-                            "./io"
+                            "/usr/lib/cmm/io.c"
+                        } else if std::fs::try_exists("./io.c").is_ok_and(|b| *b) {
+                            "./io.c"
                         } else {
-                            eprintln!("Cannot find io in /usr/lib/cmm or current directory");
+                            eprintln!("Cannot find io.c in /usr/lib/cmm or current directory");
                             exit(1);
                         };
                         codebuilder.build_asm(Path::new(&tmpfile));
