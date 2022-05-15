@@ -22,9 +22,9 @@ use std::{fs::File, io::Read, path::Path};
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
-    /// file name to compile
+    /// File name of generated file
     file: String,
-    /// visualize ast as dot file
+    /// Visualize ast as dot file
     #[clap(short, long)]
     dotfile: Option<String>,
     /// Output file name
@@ -33,8 +33,10 @@ struct Args {
     /// Optimize the code
     #[clap(short = 'O', long)]
     opt: bool,
+    /// Generate assembly file
     #[clap(short = 's', long)]
     asm: bool,
+    /// Generate llvm-ir
     #[clap(long)]
     llvmir: bool,
 }
