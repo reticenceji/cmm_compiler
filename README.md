@@ -36,7 +36,6 @@ clang io.c test.s
 - reassociate
 - GVN
 - CFG simplification
-- basic alias analysis
 - promote memory to register
 
 如果要进行优化，使用 `--opt` 选项：
