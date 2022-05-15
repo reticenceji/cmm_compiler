@@ -22,13 +22,13 @@ jobs:
     - name: algorithm_test
       run: |    
         cd ../../ZJU_Compiler/ZJU_Compiler/test/algorithm
+        cp ../../src/io.c ./io.c
         echo "test for algorithm"
         for file in `ls`
         do
-          if [[ $file =~ ".c" ]];
+          if [[ $file =~ ".c" ]] && [$file != "io.c"];
           then
             ../../target/debug/cmm $file
-            clang ../../src/io.c `echo $file | sed 's/\.c//'`.s -o a.out
             echo "================"$file"================"
             cat input.txt | ./a.out | diff - output.txt
           fi
@@ -36,13 +36,13 @@ jobs:
     - name: with_output_test
       run: |       
         cd ../../ZJU_Compiler/ZJU_Compiler/test/with_output
+        cp ../../src/io.c ./io.c
         echo "test for with_output"
         for file in `ls`
         do
-          if [[ $file =~ ".c" ]];
+          if [[ $file =~ ".c" ]]  && [$file != "io.c"];
           then
             ../../target/debug/cmm $file
-            clang ../../src/io.c `echo $file | sed 's/\.c//'`.s -o a.out
             echo "================"$file"================"
             ./a.out | diff - `echo $file | sed 's/\.c//'`_out.txt
           fi
@@ -51,9 +51,10 @@ jobs:
       run: | 
         echo "test for wrong"
         cd ../../ZJU_Compiler/ZJU_Compiler/test/wrong
+        cp ../../src/io.c ./io.c
         for file in `ls`
         do
-          if [[ $file =~ ".c" ]];
+          if [[ $file =~ ".c" ]]  && [$file != "io.c"];
           then
             echo "================"$file"================"
             if ../../target/debug/cmm $file;then 
@@ -68,9 +69,10 @@ jobs:
       run: | 
         echo "test for ok"
         cd ../../ZJU_Compiler/ZJU_Compiler/test/ok
+        cp ../../src/io.c ./io.c
         for file in `ls`
         do
-          if [[ $file =~ ".c" ]];
+          if [[ $file =~ ".c" ]]  && [$file != "io.c"];
           then
             echo "================"$file"================"
             if ../../target/debug/cmm $file;then 
