@@ -20,7 +20,7 @@ either = "1.6.1"
 lazy_static = "1.4.0"
 
 [package.metadata.deb]
-pre-depends = "clang"
+pre-depends = "clang (>= 10.0.0)"
 assets = [
     [
         "target/release/cmm",
@@ -34,7 +34,7 @@ assets = [
     ],
     [
         "src/io.c",
-        "usr/lib/cmm/io.c",
+        "usr/lib/cmm/io",
         "644",
     ],
 ]

@@ -22,7 +22,7 @@ jobs:
     - name: algorithm_test
       run: |    
         cd ../../ZJU_Compiler/ZJU_Compiler/test/algorithm
-        cp ../../src/io.c /usr/lib/cmm/io.c
+        cp ../../src/io.c ./io
         echo "test for algorithm"
         for file in `ls`
         do
@@ -36,7 +36,7 @@ jobs:
     - name: with_output_test
       run: |       
         cd ../../ZJU_Compiler/ZJU_Compiler/test/with_output
-        cp ../../src/io.c /usr/lib/cmm/io.c
+        cp ../../src/io.c ./io
         echo "test for with_output"
         for file in `ls`
         do
@@ -51,7 +51,7 @@ jobs:
       run: | 
         echo "test for wrong"
         cd ../../ZJU_Compiler/ZJU_Compiler/test/wrong
-        cp ../../src/io.c /usr/lib/cmm/io.c
+        cp ../../src/io.c ./io
         for file in `ls`
         do
           if [[ $file =~ ".c" ]];
@@ -69,7 +69,7 @@ jobs:
       run: | 
         echo "test for ok"
         cd ../../ZJU_Compiler/ZJU_Compiler/test/ok
-        cp ../../src/io.c /usr/lib/cmm/io.c
+        cp ../../src/io.c ./io
         for file in `ls`
         do
           if [[ $file =~ ".c" ]];
