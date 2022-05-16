@@ -45,7 +45,7 @@ Cmm(C minus minus) 编译器是《Compiler Construction: Principles and Practice
 
 ## 词法分析
 
-词法分析使用正则表达式进行变量、字面量、注释和关键字和运算符的匹配。关键字和运算符是字符串的匹配，没有特别的地方。
+词法分析使用正则表达式进行变量、字面量、注释和关键字和运算符的匹配。关键字和运算符是字符串的匹配，没有特别的地方。不过，我们使用Pest工具进行词法的分析，他让我们将词法分析和语法分析集成。
 
 注释和空白符的匹配规则
 
@@ -154,9 +154,15 @@ pub enum ASTInfo {
 实现的方式，就是在代码生成阶段，扫描语法树的时候先进行检查。例如，在往全局变量表添加变量的时候并生成相关代码的时候，检查是否已经存在相同的全局变量和函数。
 
 ```rust
-fn gen_global_variable(&mut self, type_: &Type, name: &str) -> Result<()> {
+fn gen_global_variable(...) -> Result<()> {
     if self.global_variables.contains_key(name) || self.global_functions.contains_key(name) {
-        Err(CodeGenErr::VariableRedefinition)?
+        Err(Error::new(position, ErrorType::VariableRedefinition))?
+    }
+    ...
+}
+fn gen_function(...) -> Result<()> {
+    if self.global_variables.contains_key(name) || self.global_functions.contains_key(name) {
+        Err(Error::new(position, ErrorType::FunctionRedefinition))?
     }
     ...
 }
@@ -170,11 +176,71 @@ fn gen_expression(&self, ast: &AST) -> Result<(Type, BasicValueEnum)> {
         AST::CallExpr(name, argments) => {
             let r = self.gen_function_call(name, argments);
             if r.is_ok() && r.as_ref().unwrap().0 == Type::Void {
-                Err(CodeGenErr::ExpressionVoidType)?
+                Err(Error::new(ast.position, ErrorType::ExpressionVoidType))?
             }
         }
         ...
     }
+```
+
+以及检测函数的返回值的类型是否匹配，赋值语句左右两边的类型是否匹配
+
+```rust
+match ret_value {
+    Some(ast) => {
+        let (type_, value) = self.gen_expression(ast)?;
+        if type_ == func_return_type {
+            self.builder.build_return(Some(&value));
+        } else {
+            Err(Error::new(ast.position, ErrorType::MismatchedTypeFunction))?
+        }
+    }
+    None => {
+        if func_return_type == Type::Void {
+            self.builder.build_return(None);
+        } else {
+            Err(Error::new(stmt.position, ErrorType::MismatchedTypeFunction))?
+        }
+    }
+}
+
+if type_left == type_right {
+    self.builder.build_store(ptr, value);
+    Ok((type_left, value.as_basic_value_enum()))
+} else {
+    Err(Error::new(var.position, ErrorType::MismatchedType))?
+}
+```
+
+编译器应该给出合适的报错信息，让用户可以修改源代码中的错误。我们将错误分成两种类型，一个是词法/语法分析时候发现的错误，一个是语义检查发现的错误。
+
+对于词法/语法分析发现的错误，使用的Pest已经提供了较好的支持，我们可以直接利用他提供的错误信息进行一定的处理返回给用户。
+
+对于语义检查发现的错误，我们分析错误的原因，利用保存在语法树中的位置信息，向用户报告错误的原因和位置。我们定义了以下错误类型
+
+```rust
+pub enum ErrorType {
+    VariableRedefinition,    // 变量重定义
+    IndexNotInt,             // 数组的索引不是整数类型
+    VariableNotDefined,      // 变量未定义
+    FunctionRedefinition,    // 函数重定义
+    MismatchedType,          // 表达式的类型不匹配
+    MismatchedTypeFunction,  // 函数的返回值不匹配
+    FunctionNotDefined,      // 函数未定义
+    ExpressionVoidType,      // 在需要表达式的地方使用了返回值为void的函数
+    PestError(String),       // 词法分析错误和语法分析错误
+}
+```
+
+通过在语法树中存储的行数信息，我们可以给出具体的错误发生位置，帮助用户精确定位错误。一个例子如下：
+
+```
+Error: 3:9:  --> 3:9
+  |
+3 |     int 1b;␊
+  |         ^---
+  |
+  = expected id
 ```
 
 ## 代码生成
@@ -205,38 +271,503 @@ pub struct CodeBuilder<'ctx> {
 | 生成函数调用表达式 | `gen_function_call`   | 1. 准备参数，参数是表达式，调用`gen_expression`<br />2. 构造函数调用语句<br />3. 检查函数的返回值类型是否匹配 |
 | 生成赋值表达式     | `gen_assignment_expr` | 1. 查变量表找到变量<br />2. 将右值赋值给变量，右值是表达式,调用`gen_expression` |
 
-## 错误处理
-
-编译器应该给出合适的报错信息，让用户可以修改源代码中的错误。我们将错误分成两种类型，一个是词法/语法分析时候发现的错误，一个是语义检查发现的错误。
-
-对于词法/语法分析发现的错误，使用的Pest已经提供了较好的支持，我们可以直接利用他提供的错误信息进行一定的处理返回给用户。
-
-对于语义检查发现的错误，我们分析错误的原因，利用保存在语法树中的位置信息，向用户报告错误的原因和位置。我们定义了以下错误类型
-
-```rust
-pub enum ErrorType {
-    VariableRedefinition,    // 变量重定义
-    IndexNotInt,             // 数组的索引不是整数类型
-    VariableNotDefined,      // 变量未定义
-    FunctionRedefinition,    // 函数重定义
-    MismatchedType,          // 表达式的类型不匹配
-    MismatchedTypeFunction,  // 函数的返回值不匹配
-    FunctionNotDefined,      // 函数未定义
-    ExpressionVoidType,      // 在需要表达式的地方使用了返回值为void的函数
-    PestError(String),       // 词法分析错误和语法分析错误
-}
-```
-
 ## 代码优化
 
 代码优化考虑使用 LLVM 的 [Pass](https://llvm.org/docs/Passes.html) 进行优化，这里采用的优化是基于函数的优化，即优化的单位是函数而不是整个文件程序。
+
+优化采用的关键结构为：
+```rust
+pub struct CodeBuilder<'ctx> {
+    ...
+    /// For optimize
+    fpm: Option<PassManager<FunctionValue<'ctx>>>,
+}
+```
+当没有启用优化时，将 `fpm` 初始化为 `None` 即可，否则我们这样初始化：
+```rust
+// Create FPM
+let mut fpm = None;
+if opt {
+    let temp = PassManager::create(&module);
+
+    temp.add_instruction_combining_pass();
+    temp.add_reassociate_pass();
+    temp.add_gvn_pass();
+    temp.add_cfg_simplification_pass();
+    temp.add_promote_memory_to_register_pass();
+
+    temp.initialize();
+    fpm = Some(temp)
+}
+```
+当完成一个函数的生成后，调用 `fpm` 对函数进行优化：
+
+```rust
+// Optimize on function level
+if let Some(fpm) = &self.fpm {
+  fpm.run_on(&function);
+}
+```
+
+
+
+启用的优化及其描述如下表：
+
+| Name                           | Description                                | Code Example                                                 |
+| ------------------------------ | ------------------------------------------ | ------------------------------------------------------------ |
+| Combine Redundant Instructions | 组合指令以形成更少、更简单的指令           | %Y = add i32 %X, 1<br />%Z = add i32 %Y, 1<br />=><br />%Z = add i32 %X, 2 |
+| Reassociate Expressions        | 重新关联表达式的顺序，以得到更好的常数传播 | 4 + (x + 5) ⇒ x + (4 + 5)                                    |
+| Global Value Numbering         | 对全局值计算进行编号，消除部分冗余指令     |                                                              |
+| Simplify CFG                   | 执行死代码消除和基本的块合并               |                                                              |
+| Promote Memory to Register     | 即将内存的引用转换到寄存器中               |                                                              |
+
+
+
+一些具体的例子如下：
+
+**Combine Redundant Instructions**
+
+```c
+int f(int x) {
+    return (1+2+x)*(x+(1+2));
+}
+```
+
+生成的 asm 如下：
+```assembly
+# No Optimization
+_f:
+	.cfi_startproc
+	movl	%edi, -4(%rsp)
+	movl	-4(%rsp), %eax
+	addl	$3, %eax
+	movl	-4(%rsp), %ecx
+	addl	$3, %ecx
+	imull	%ecx, %eax
+	retq
+	.cfi_endproc
+
+# With Optimization
+_f:
+	.cfi_startproc
+	movl	%edi, %eax
+	addl	$3, %eax
+	imull	%eax, %eax
+	retq
+	.cfi_endproc
+```
+
+显然，两次对 `1+2+x` 的计算被优化为了一次。
+
+
+
+**Reassociate Expressions**
+
+```c
+int f(int x) {
+    return 4 + (x + 5) + 8;
+}
+```
+
+生成的 asm 如下：
+
+```assembly
+# No Optimization
+_f:
+	.cfi_startproc
+	movl	%edi, -4(%rsp)
+	movl	-4(%rsp), %eax
+	addl	$5, %eax
+	addl	$4, %eax
+	addl	$8, %eax
+	retq
+	.cfi_endproc
+# With Optimization
+_f:
+	.cfi_startproc
+	movl	%edi, %eax
+	addl	$17, %eax
+	retq
+	.cfi_endproc
+```
+
+多次对常数运算被优化为一次常数加法运算。
+
+
+
+**Global Value Numbering**
+
+```c
+int f(int a, int b) {
+    int c;
+    int d;
+    c = a + b;
+    d = a + b;
+}
+```
+
+
+
+这个优化的现象通过 lr 代码更加清晰：
+
+```
+# No Optimization
+define i32 @f(i32 %a, i32 %b) {
+entry:
+  %0 = alloca i32, align 4
+  store i32 %a, i32* %0, align 4
+  %1 = alloca i32, align 4
+  store i32 %b, i32* %1, align 4
+  %c = alloca i32, align 4
+  %d = alloca i32, align 4
+  %2 = load i32, i32* %0, align 4
+  %3 = load i32, i32* %1, align 4
+  %4 = add i32 %2, %3
+  store i32 %4, i32* %c, align 4
+  %5 = load i32, i32* %0, align 4
+  %6 = load i32, i32* %1, align 4
+  %7 = add i32 %5, %6
+  store i32 %7, i32* %d, align 4
+  ret void
+}
+
+# With Optimization
+define i32 @f(i32 %a, i32 %b) {
+entry:
+  %0 = alloca i32, align 4
+  store i32 %a, i32* %0, align 4
+  %1 = alloca i32, align 4
+  store i32 %b, i32* %1, align 4
+  %c = alloca i32, align 4
+  %d = alloca i32, align 4
+  %2 = add i32 %a, %b
+  store i32 %2, i32* %c, align 4
+  store i32 %2, i32* %d, align 4
+  ret void
+}
+```
+
+仔细观察，在未优化的代码中：
+
+```
+%4 = add i32 %2, %3
+%7 = add i32 %5, %6
+```
+
+即 `c=a+b;d=a+b` 被计算了两次，而在优化后的代码中：
+
+```
+%2 = add i32 %a, %b
+store i32 %2, i32* %c, align 4
+store i32 %2, i32* %d, align 4
+```
+
+编译器发现 `a+b` 在 `c` 中已经计算过了，所以算 `d ` 的时候就不会再次计算了。
+
+
+
+**Simplify CFG**
+
+```c
+int f() {
+    int a;
+  
+    if (0) {
+        a = 1;
+    } else {
+        a = 2;
+    }
+
+    return a;
+}
+```
+
+生成的 asm 如下：
+
+```assembly
+# No Optimization
+_f:
+	.cfi_startproc
+	xorl	%eax, %eax
+	testb	$1, %al
+	jne	LBB0_1
+	jmp	LBB0_2
+LBB0_1:
+	movl	$1, -4(%rsp)
+	jmp	LBB0_3
+LBB0_2:
+	movl	$2, -4(%rsp)
+LBB0_3:
+	movl	-4(%rsp), %eax
+	retq
+	.cfi_endproc
+
+# With Optimization
+_f:
+	.cfi_startproc
+	movl	$2, %eax
+	retq
+	.cfi_endproc
+```
+
+这个优化也比较明显，分析出代码不会执行 `if` 分支，所以直接删除了那一段，而直接执行了 `a=2` 并返回。（其他优化过程优化掉了 `a=2` 的计算）
+
+
+
+**Promote Memory to Register**
+
+```c
+int f() {
+    int a [3];
+
+    a[0] = 0;
+    a[1] = 1;
+    a[2] = 3;
+}
+```
+
+生成的 asm 如下：
+
+```assembly
+# No Optimization
+_f:
+	.cfi_startproc
+	leaq	-12(%rsp), %rax
+	movq	%rax, -24(%rsp)
+	movq	-24(%rsp), %rax
+	movl	$0, (%rax)
+	movq	-24(%rsp), %rax
+	movl	$1, 4(%rax)
+	movq	-24(%rsp), %rax
+	movl	$3, 8(%rax)
+	retq
+	.cfi_endproc
+	
+# With Optimization
+_f:
+	.cfi_startproc
+	movl	$0, -12(%rsp)
+	movl	$1, -8(%rsp)
+	movl	$3, -4(%rsp)
+	retq
+	.cfi_endproc
+```
+
+可以看到，重复的内存访问都被简化到了 `sp` 寄存器的操作上。
 
 
 ## AST 可视化
 
 ## 测试案例
 
+### 词法测试
 
+| 词法规则                                      | 正确样例                             | 典型错误                |
+| --------------------------------------------- | ------------------------------------ | ----------------------- |
+| ID为以`_`或字母开头的字符串，同时不能是关键字 | `int _abc1;int add(int a_,int_ b){}` | `int 1a_;``int return;` |
+| num为数字的组合(不包括-等符号)                | `a=10;`                              | `a=-10;`                |
+| 支持二进制、八进制、十六进制和十进制数字      | `a=0b1;b=0o7;c=0xf;C=0xF;d=10;`      | `a=0o9;`                |
+| 注释为`/*...*/`或`//`的形式                   | `//a comment` `/*a comment*/`        | `/*wrong*`              |
+| 仅支持部分运算符`+-*/\><>=<=&|^<<>>`          | `a=a&1;`                             | `a=!1;`                 |
+| 空格、tab、换行等空白字符会被忽略             | `int a     =10;`                     | 一般不会有              |
+| 匹配`int void return`等关键字                 | `int a;return 0;`                    | `int return;`           |
 
+### 语法测试
 
+| 语法规则                                           | 正确样例                     | 典型错误              |
+| -------------------------------------------------- | ---------------------------- | --------------------- |
+| 定义语句只能为`Type ID;`的形式，不能在定义同时赋值 | `int a;int b[20];`           | `int a=50;`           |
+| 局部变量的定义语句结束后不能在该函数中再次定义变量 | `int a;int b;a=10;b=20;`     | `int a;a=10;int b;`   |
+| 括号((,[,{,},],))需匹配完整                        | `int add(int a[],int b[]){}` | 括号不匹配            |
+| 数组使用`Type ID[num]`的形式表示                   | `int def[10];`               | `int def[10;`         |
+| 没有函数声明，只有函数定义                         | `int add(int a[],int b[]){}` | `int add();`          |
+| 函数定义时若无参数则不写，不应该使用void           | `int test(){}`               | `int test(void){}`    |
+| 函数定义时需要写完整的参数名，不能只写类型         | `int add(int a[],int b[]){}` | `int add(int,int){}`  |
+| 运算符使用时要符合规则                             | `a=(a+1)^3/2*5;`             | `a=+a;`               |
+| 语句末需要有`;`                                    | `int a;`                     | `int a`               |
+| `if`和`else`要匹配，不允许出现额外的else           | `if(a){}else if(b){} else{}` | `if(a){}else{}else{}` |
+| `while`语句和`if else`语句要符合使用规则           | `while(a){}`                 | `if(){}`和`while(){}` |
 
+### 语义测试
+
+#### 编译时出现的典型错误
+
+1. 变量使用前需要先定义
+
+   ```c
+   int inc(void)
+   {
+       int i;
+       return j; //未定义的变量j
+   }
+   void main(){
+       inc();
+   }
+   ```
+
+2. 变量使用时需要符合变量定义的类型
+
+   ```c
+   void main(){
+       void i;
+       i = 1;//给void类型变量i赋值int类型的数字
+   }
+   ```
+
+3. 变量定义时不能使用已定义的变量名
+
+   ```c
+   void main(){
+       int i;
+       int i[5];//定义了已定义的变量名i
+   }
+   ```
+
+4. 运算符两边的运算数类型需要符合运算符的规则
+
+   ```c
+   void main(){
+       int i;
+       void j;
+       i = j+1; //+运算符两边的运算数都应为int，使用了void类型的j
+   }
+   ```
+
+5. 函数定义时不能使用已定义的函数名
+
+   ```c
+   int inc()
+   {
+       int i;
+       i = i + 1;
+       return i;
+   }
+   int inc(int i) //定义了已定义的函数名inc
+   {
+       return i + 1;
+   }
+   void main(){
+       inc();
+   }
+   ```
+
+6. 函数定义时的返回类型需要与`return`语句相匹配
+
+   ```c
+   void inc(int i)
+   {
+       i = i + 1;
+       return i;//函数返回类型应为void，但返回了int
+   }
+   int add(int i){
+       i = i + 1;
+       return; //函数返回类型应为int，但没有返回值（void）
+   }
+   void main(){
+       inc();
+       add(1);
+   }
+   ```
+
+7. 必须先定义函数，然后才能调用函数
+
+   ```c
+   void main(){
+       int i;
+       inc(i);//函数仍未定义
+       return ;
+   }
+   int inc(int i){
+       return i+1;
+   }
+   ```
+
+8. 调用函数时的参数需要与函数定义时的参数类型相匹配
+
+   ```c
+   int inc(int i){
+       return i+1;
+   }
+   void swap(int a,int b){
+       int tmp;
+       tmp=b;
+       b=a;
+       a=tmp;
+   }
+   void main(){
+       int i;
+       int a[10];
+       int b[10];
+       inc();//函数定义要求参数为int，但调用时未传入参数
+       swap(a,b);//函数定义要求参数为两个int，但调用时传入两个int类型的数组
+       return ;
+   }
+   ```
+
+9. 文件中需要有`main()`作为入口
+
+   ```c
+   int inc(int i){
+       return i+1;
+   }
+   //没有main()作为入口
+   ```
+
+10. 访问数组时下标不能越界，需要在定义时限定的范围内
+
+    ```c
+    int main(){
+        int a[10];
+        int b;
+        b=a[10];//下标超过定义时界限
+        return 0;
+    }
+    ```
+
+11. 可以使用变量作为`int main()`的返回值
+
+    ```c
+    int main(){
+        int i;
+        i=1;
+        return i;//可以使用变量作为返回值，但main()的非0返回，编译器会报错
+    }
+    ```
+
+12. 函数执行到`return`语句时需要退出该函数（在归并排序测试中体现）
+
+#### 运行正确性测验
+
+##### 排序算法测试
+
+根据C--的语法编写了冒泡排序、快速排序和归并排序的代码，经检验均能正确对输入排序后输出。
+
+冒泡排序中测试了嵌套的while语句，函数参数传递数组和数组的读写功能
+
+快速排序中测试了递归函数，函数参数传递数组和`if`语句功能
+
+归并排序中测试了递归函数，函数参数传递数组，多个并置的`if-else`语句，函数的`return`语句的功能
+
+##### 变量作用域测试
+
+局部变量若与已定义的全局变量同名，在函数中会屏蔽该全局变量
+
+```c
+int a;//定义全局变量a
+int gcd(int a, int b) {//定义递归函数gcd，在参数中定义了局部变量a和b，屏蔽了全局变量a
+    if (b == 0)
+        return a;
+    else
+        return gcd(b, a - a / b * b);
+}
+int b[20];//在下方定义全局变量数组b
+int add(int a, int b) {//定义函数add()，在参数中定义了局部变量a和b，屏蔽了全局变量a和b
+    return a + b;
+}
+int main() {
+    int c;
+    a = 10;//给全局变量赋值
+    c = 6;//给局部变量赋值
+    return 0;
+}
+```

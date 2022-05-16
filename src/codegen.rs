@@ -54,7 +54,6 @@ impl<'ctx> CodeBuilder<'ctx> {
             temp.add_reassociate_pass();
             temp.add_gvn_pass();
             temp.add_cfg_simplification_pass();
-            temp.add_basic_alias_analysis_pass();
             temp.add_promote_memory_to_register_pass();
 
             temp.initialize();
