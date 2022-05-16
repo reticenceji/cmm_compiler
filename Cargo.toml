@@ -5,6 +5,7 @@ version = "0.3.1"
 edition = "2021"
 description = "cmm is a simplified version of the C language introduced after the book \"Compiler Construction: Principles and Practice\"."
 license = "MIT OR Apache-2.0"
+readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -20,6 +21,7 @@ lazy_static = "1.4.0"
 
 [package.metadata.deb]
 pre-depends = "clang (>= 10.0.0)"
+extended-description-file = "README.md"
 assets = [
     [
         "target/release/cmm",
@@ -27,8 +29,8 @@ assets = [
         "755",
     ],
     [
-        "report.md",
-        "usr/share/doc/cmm/Document",
+        "doc/report.md",
+        "usr/share/doc/cmm/Document.md",
         "644",
     ],
     [

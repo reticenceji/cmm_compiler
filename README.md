@@ -4,7 +4,7 @@ Cmm是《Compiler Construction: Principles and Practice》书后介绍的一个�
 
 程序的使用方法：类似于gcc/clang。通过项目release的deb包进行安装。`cmm source.c`即可进行编译，编译的默认结果为`a.out`。更详细的使用方法查看`cmm --help`。
 
-程序的构建方法：除了[Rust]之外，主要需要llvm的依赖。在Ubuntu中可以使用`sudo apt install llvm`完成依赖安装。llvm的版本可以在`Cargo.toml`进行配置。配置完成后`cargo build`即可进行构建。
+程序的构建方法：除了[Rust](https://www.rust-lang.org/)之外，主要需要llvm的依赖。在Ubuntu中可以使用`sudo apt install llvm`完成依赖安装。llvm的版本可以在`Cargo.toml`进行配置。配置完成后`cargo build`即可进行构建。
 
 程序主要使用的第三方库：
 
