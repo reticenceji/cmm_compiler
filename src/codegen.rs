@@ -1,5 +1,5 @@
 use crate::error::{Error, ErrorType, Result};
-use crate::parser::{ASTInfo, Oprand, Type, AST};
+use crate::parser::{ASTInfo, Ast, Oprand, Type};
 use either::Either;
 use inkwell::{
     builder::Builder,
@@ -38,7 +38,7 @@ pub struct CodeBuilder<'ctx> {
 }
 
 impl<'ctx> CodeBuilder<'ctx> {
-    pub fn new<T>(context: &'ctx Context, name: T, ast: &Vec<AST>, opt: bool) -> Result<Self>
+    pub fn new<T>(context: &'ctx Context, name: T, ast: &Vec<Ast>, opt: bool) -> Result<Self>
     where
         T: Borrow<str>,
     {
@@ -107,7 +107,7 @@ impl<'ctx> CodeBuilder<'ctx> {
             .unwrap();
     }
 
-    fn generate(&mut self, ast: &Vec<AST>) -> Result<()> {
+    fn generate(&mut self, ast: &Vec<Ast>) -> Result<()> {
         let input = self.context.i32_type().fn_type(&[], false);
         let input = self
             .module
@@ -150,10 +150,10 @@ impl<'ctx> CodeBuilder<'ctx> {
         }
         let v = self
             .module
-            .add_global(type_.to_llvm_basic_type(&self.context), None, name);
+            .add_global(type_.to_llvm_basic_type(self.context), None, name);
         v.set_initializer(&self.context.i32_type().const_int(0, false));
         self.global_variables
-            .insert(name.to_string(), (type_.clone(), v.as_pointer_value()));
+            .insert(name.to_string(), (*type_, v.as_pointer_value()));
         Ok(())
     }
 
@@ -162,8 +162,8 @@ impl<'ctx> CodeBuilder<'ctx> {
         position: (usize, usize),
         type_: &Type,
         name: &str,
-        params: &Vec<(Type, String)>,
-        body: &AST,
+        params: &[(Type, String)],
+        body: &Ast,
     ) -> Result<()> {
         if self.global_variables.contains_key(name) || self.global_functions.contains_key(name) {
             Err(Error::new(position, ErrorType::FunctionRedefinition))?
@@ -219,7 +219,7 @@ impl<'ctx> CodeBuilder<'ctx> {
         Ok(())
     }
 
-    fn gen_block_stmt(&mut self, ast: &AST) -> Result<()> {
+    fn gen_block_stmt(&mut self, ast: &Ast) -> Result<()> {
         let info = &ast.info;
 
         if let ASTInfo::BlockStmt(variables, statements) = info {
@@ -274,7 +274,7 @@ impl<'ctx> CodeBuilder<'ctx> {
         Ok(())
     }
 
-    fn gen_statement(&mut self, stmt: &AST) -> Result<()> {
+    fn gen_statement(&mut self, stmt: &Ast) -> Result<()> {
         match &stmt.info {
             ASTInfo::BlockStmt(_, _) => self.gen_block_stmt(stmt)?,
             ASTInfo::SelectionStmt(cond, then_stmt, else_stmt) => {
@@ -393,7 +393,7 @@ impl<'ctx> CodeBuilder<'ctx> {
         Ok(())
     }
 
-    fn gen_expression(&self, ast: &AST) -> Result<(Type, BasicValueEnum)> {
+    fn gen_expression(&self, ast: &Ast) -> Result<(Type, BasicValueEnum)> {
         match &ast.info {
             ASTInfo::AssignmentExpr(var, expr) => self.gen_assignment_expr(var, expr),
             ASTInfo::BinaryExpr(op, lhs, rhs) => self.gen_binary_expr(op, lhs, rhs),
@@ -425,8 +425,8 @@ impl<'ctx> CodeBuilder<'ctx> {
     fn gen_binary_expr(
         &self,
         op: &Oprand,
-        left: &AST,
-        right: &AST,
+        left: &Ast,
+        right: &Ast,
     ) -> Result<(Type, BasicValueEnum)> {
         let (lhs, rhs) = (self.gen_expression(left)?.1, self.gen_expression(right)?.1);
         let lhs = match lhs {
@@ -503,7 +503,7 @@ impl<'ctx> CodeBuilder<'ctx> {
         &self,
         position: (usize, usize),
         name: &str,
-        argments: &Vec<AST>,
+        argments: &Vec<Ast>,
     ) -> Result<(Type, BasicValueEnum)> {
         let mut args = Vec::new();
         for argment in argments {
@@ -517,7 +517,7 @@ impl<'ctx> CodeBuilder<'ctx> {
                 match return_value.try_as_basic_value() {
                     Either::Left(value) => {
                         if value.get_type() == type_.to_llvm_basic_type(self.context) {
-                            return Ok((*type_, value));
+                            Ok((*type_, value))
                         } else {
                             Err(Error::new(position, ErrorType::MismatchedType))?
                         }
@@ -535,7 +535,7 @@ impl<'ctx> CodeBuilder<'ctx> {
         }
     }
 
-    fn gen_assignment_expr(&self, var: &AST, expr: &AST) -> Result<(Type, BasicValueEnum)> {
+    fn gen_assignment_expr(&self, var: &Ast, expr: &Ast) -> Result<(Type, BasicValueEnum)> {
         let var_info = &var.info;
         if let ASTInfo::Variable(name, index) = var_info {
             let (type_left, ptr) =
@@ -556,7 +556,7 @@ impl<'ctx> CodeBuilder<'ctx> {
         &self,
         position: (usize, usize),
         name: &str,
-        index: &Option<&AST>,
+        index: &Option<&Ast>,
     ) -> Result<(Type, PointerValue)> {
         let (type_, ptr) = self.get_name_ptr(position, name)?;
         match type_ {
@@ -632,7 +632,7 @@ mod test_parse {
                 let mut buf = String::new();
                 file.read_to_string(&mut buf).unwrap();
 
-                let ast = super::AST::parse(buf).unwrap();
+                let ast = super::Ast::parse(buf).unwrap();
                 let context = Context::create();
                 let codegen = CodeBuilder::new(&context, "test", &ast, false)
                     .expect("Source code file test failed");

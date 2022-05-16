@@ -1,5 +1,5 @@
 //! Abstract Syntax Tree Visualizer
-use crate::parser::{AST, ASTInfo};
+use crate::parser::{ASTInfo, Ast};
 use lazy_static::lazy_static;
 use std::sync::Mutex;
 
@@ -90,7 +90,7 @@ impl Content {
 }
 
 impl DiGraph {
-    pub fn new(name: &str, asts: &Vec<AST>) -> Self {
+    pub fn new(name: &str, asts: &Vec<Ast>) -> Self {
         let mut g = Self {
             name: Some(name.to_string()),
             id: ID_ALLOCATOR.lock().unwrap().alloc(),
@@ -118,17 +118,17 @@ impl DiGraph {
         self.id
     }
 
-    fn parse_asts(&mut self, asts: &Vec<AST>) {
+    fn parse_asts(&mut self, asts: &Vec<Ast>) {
         for ast in asts {
             let subg = DiGraph::from_ast(ast);
             let node = Node::Subgraph(subg);
 
-            self.add_cont(Content::Edge(Edge::new(&self, &node)));
+            self.add_cont(Content::Edge(Edge::new(self, &node)));
             self.add_cont(Content::Node(node));
         }
     }
 
-    fn from_ast(ast: &AST) -> Self {
+    fn from_ast(ast: &Ast) -> Self {
         let mut g = Self::empty();
         g.parse_ast(ast);
         g
@@ -138,15 +138,15 @@ impl DiGraph {
         self.conts.push(cont)
     }
 
-    fn parse_ast(&mut self, ast: &AST) {
+    fn parse_ast(&mut self, ast: &Ast) {
         match &ast.info {
             ASTInfo::FunctionDec(ftype, name, params, box ast) => {
                 self.name = Some("FunctionDec".to_string());
                 let node_type = Node::new_symbol(&ftype.to_string());
                 let node_name = Node::new_symbol(name);
 
-                self.add_cont(Content::Edge(Edge::new(&self, &node_type)));
-                self.add_cont(Content::Edge(Edge::new(&self, &node_name)));
+                self.add_cont(Content::Edge(Edge::new(self, &node_type)));
+                self.add_cont(Content::Edge(Edge::new(self, &node_name)));
                 self.add_cont(Content::Node(node_type));
                 self.add_cont(Content::Node(node_name));
 
@@ -165,13 +165,13 @@ impl DiGraph {
                     }
 
                     let node = Node::new_subg(subg);
-                    self.add_cont(Content::Edge(Edge::new(&self, &node)));
+                    self.add_cont(Content::Edge(Edge::new(self, &node)));
                     self.add_cont(Content::Node(node));
                 }
 
                 let subg = DiGraph::from_ast(ast);
                 let node = Node::new_subg(subg);
-                self.add_cont(Content::Edge(Edge::new(&self, &node)));
+                self.add_cont(Content::Edge(Edge::new(self, &node)));
                 self.add_cont(Content::Node(node));
             }
             ASTInfo::VariableDec(vtype, name) => {
@@ -179,8 +179,8 @@ impl DiGraph {
                 let node_type = Node::new_symbol(&vtype.to_string());
                 let node_name = Node::new_symbol(name);
 
-                self.add_cont(Content::Edge(Edge::new(&self, &node_type)));
-                self.add_cont(Content::Edge(Edge::new(&self, &node_name)));
+                self.add_cont(Content::Edge(Edge::new(self, &node_type)));
+                self.add_cont(Content::Edge(Edge::new(self, &node_name)));
                 self.add_cont(Content::Node(node_type));
                 self.add_cont(Content::Node(node_name));
             }
@@ -190,7 +190,7 @@ impl DiGraph {
                     let subg = DiGraph::from_ast(ast);
                     let node = Node::Subgraph(subg);
 
-                    self.add_cont(Content::Edge(Edge::new(&self, &node)));
+                    self.add_cont(Content::Edge(Edge::new(self, &node)));
                     self.add_cont(Content::Node(node));
                 }
 
@@ -198,7 +198,7 @@ impl DiGraph {
                     let subg = DiGraph::from_ast(ast);
                     let node = Node::Subgraph(subg);
 
-                    self.add_cont(Content::Edge(Edge::new(&self, &node)));
+                    self.add_cont(Content::Edge(Edge::new(self, &node)));
                     self.add_cont(Content::Node(node));
                 }
             }
@@ -210,9 +210,9 @@ impl DiGraph {
                 let cond_node = Node::Subgraph(DiGraph::from_ast(ast1));
                 let true_node = Node::Subgraph(DiGraph::from_ast(ast2));
 
-                self.add_cont(Content::Edge(Edge::new(&self, &if_node)));
-                self.add_cont(Content::Edge(Edge::new(&self, &cond_node)));
-                self.add_cont(Content::Edge(Edge::new(&self, &true_node)));
+                self.add_cont(Content::Edge(Edge::new(self, &if_node)));
+                self.add_cont(Content::Edge(Edge::new(self, &cond_node)));
+                self.add_cont(Content::Edge(Edge::new(self, &true_node)));
                 self.add_cont(Content::Node(if_node));
                 self.add_cont(Content::Node(cond_node));
                 self.add_cont(Content::Node(true_node));
@@ -222,8 +222,8 @@ impl DiGraph {
                     let else_node = Node::new_symbol("else");
                     let false_node = Node::Subgraph(DiGraph::from_ast(ast));
 
-                    self.add_cont(Content::Edge(Edge::new(&self, &else_node)));
-                    self.add_cont(Content::Edge(Edge::new(&self, &false_node)));
+                    self.add_cont(Content::Edge(Edge::new(self, &else_node)));
+                    self.add_cont(Content::Edge(Edge::new(self, &false_node)));
                     self.add_cont(Content::Node(else_node));
                     self.add_cont(Content::Node(false_node));
                 }
@@ -235,9 +235,9 @@ impl DiGraph {
                 let cond_node = Node::new_subg(DiGraph::from_ast(ast1));
                 let expr_node = Node::new_subg(DiGraph::from_ast(ast2));
 
-                self.add_cont(Content::Edge(Edge::new(&self, &while_node)));
-                self.add_cont(Content::Edge(Edge::new(&self, &cond_node)));
-                self.add_cont(Content::Edge(Edge::new(&self, &expr_node)));
+                self.add_cont(Content::Edge(Edge::new(self, &while_node)));
+                self.add_cont(Content::Edge(Edge::new(self, &cond_node)));
+                self.add_cont(Content::Edge(Edge::new(self, &expr_node)));
                 self.add_cont(Content::Node(while_node));
                 self.add_cont(Content::Node(cond_node));
                 self.add_cont(Content::Node(expr_node));
@@ -247,13 +247,13 @@ impl DiGraph {
 
                 let return_node = Node::new_symbol("return");
 
-                self.add_cont(Content::Edge(Edge::new(&self, &return_node)));
+                self.add_cont(Content::Edge(Edge::new(self, &return_node)));
                 self.add_cont(Content::Node(return_node));
 
                 if let Some(box ast) = ast {
                     let retval_node = Node::new_subg(DiGraph::from_ast(ast));
 
-                    self.add_cont(Content::Edge(Edge::new(&self, &retval_node)));
+                    self.add_cont(Content::Edge(Edge::new(self, &retval_node)));
                     self.add_cont(Content::Node(retval_node));
                 }
             }
@@ -264,9 +264,9 @@ impl DiGraph {
                 let equal_node = Node::new_symbol("=");
                 let expr_node = Node::new_subg(DiGraph::from_ast(ast2));
 
-                self.add_cont(Content::Edge(Edge::new(&self, &var_node)));
-                self.add_cont(Content::Edge(Edge::new(&self, &equal_node)));
-                self.add_cont(Content::Edge(Edge::new(&self, &expr_node)));
+                self.add_cont(Content::Edge(Edge::new(self, &var_node)));
+                self.add_cont(Content::Edge(Edge::new(self, &equal_node)));
+                self.add_cont(Content::Edge(Edge::new(self, &expr_node)));
                 self.add_cont(Content::Node(var_node));
                 self.add_cont(Content::Node(equal_node));
                 self.add_cont(Content::Node(expr_node));
@@ -277,9 +277,9 @@ impl DiGraph {
                 let lval = Node::new_subg(DiGraph::from_ast(ast1));
                 let rval = Node::new_subg(DiGraph::from_ast(ast2));
 
-                self.add_cont(Content::Edge(Edge::new(&self, &op_node)));
-                self.add_cont(Content::Edge(Edge::new(&self, &lval)));
-                self.add_cont(Content::Edge(Edge::new(&self, &rval)));
+                self.add_cont(Content::Edge(Edge::new(self, &op_node)));
+                self.add_cont(Content::Edge(Edge::new(self, &lval)));
+                self.add_cont(Content::Edge(Edge::new(self, &rval)));
                 self.add_cont(Content::Node(op_node));
                 self.add_cont(Content::Node(lval));
                 self.add_cont(Content::Node(rval));
@@ -289,7 +289,7 @@ impl DiGraph {
 
                 let name_node = Node::new_symbol(name);
 
-                self.add_cont(Content::Edge(Edge::new(&self, &name_node)));
+                self.add_cont(Content::Edge(Edge::new(self, &name_node)));
                 self.add_cont(Content::Node(name_node));
 
                 if !params.is_empty() {
@@ -304,7 +304,7 @@ impl DiGraph {
                     }
 
                     let node = Node::new_subg(subg);
-                    self.add_cont(Content::Edge(Edge::new(&self, &node)));
+                    self.add_cont(Content::Edge(Edge::new(self, &node)));
                     self.add_cont(Content::Node(node));
                 }
             }
@@ -313,7 +313,7 @@ impl DiGraph {
 
                 let name_node = Node::new_symbol(name);
 
-                self.add_cont(Content::Edge(Edge::new(&self, &name_node)));
+                self.add_cont(Content::Edge(Edge::new(self, &name_node)));
                 self.add_cont(Content::Node(name_node));
 
                 // Array index
@@ -327,7 +327,7 @@ impl DiGraph {
                     subg.add_cont(Content::Node(index_node));
 
                     let node = Node::new_subg(subg);
-                    self.add_cont(Content::Edge(Edge::new(&self, &node)));
+                    self.add_cont(Content::Edge(Edge::new(self, &node)));
                     self.add_cont(Content::Node(node));
                 }
             }
@@ -336,7 +336,7 @@ impl DiGraph {
 
                 let int_node = Node::new_symbol(&val.to_string());
 
-                self.add_cont(Content::Edge(Edge::new(&self, &int_node)));
+                self.add_cont(Content::Edge(Edge::new(self, &int_node)));
                 self.add_cont(Content::Node(int_node));
             }
         }
@@ -350,7 +350,7 @@ impl DiGraph {
         );
         for cont in &self.conts {
             buf.push_str(&cont.to_dot());
-            buf.push_str("\n");
+            buf.push('\n');
         }
 
         buf

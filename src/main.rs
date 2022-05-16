@@ -14,7 +14,7 @@ use crate::codegen::CodeBuilder;
 use ast_viz::DiGraph;
 use clap::Parser;
 use inkwell::context::Context;
-use parser::AST;
+use parser::Ast;
 use std::io::Write;
 use std::process::exit;
 use std::{fs::File, io::Read, path::Path};
@@ -64,7 +64,7 @@ fn main() {
         }
     };
 
-    match AST::parse(source_code) {
+    match Ast::parse(source_code) {
         Ok(ast) => match CodeBuilder::new(&context, args.file.as_str(), &ast, args.opt) {
             Ok(codebuilder) => {
                 match (args.asm, args.llvmir) {
