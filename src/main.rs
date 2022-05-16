@@ -84,7 +84,11 @@ fn main() {
                         std::process::Command::new("clang")
                             .args([tmpfile.as_str(), io_c])
                             .spawn()
+                            .expect("Fail to start clang")
+                            .wait()
                             .expect("Fail to link io.c with clang");
+                        std::fs::remove_file(Path::new(&tmpfile))
+                            .expect("Fail to remove temp file");
                     }
                 };
 

@@ -1,7 +1,7 @@
 [package]
 name = "cmm"
 authors = ["Ji Gaoqiang", "Wu Yifei", "Gao Chenxi"]
-version = "0.2.0"
+version = "0.3.1"
 edition = "2021"
 description = "cmm is a simplified version of the C language introduced after the book \"Compiler Construction: Principles and Practice\"."
 license = "MIT OR Apache-2.0"
