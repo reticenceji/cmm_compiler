@@ -1,12 +1,10 @@
+use crate::error::Error;
 use inkwell::{
     context::Context,
     types::{BasicMetadataTypeEnum, BasicType, BasicTypeEnum},
 };
 use pest::{iterators::Pair, Parser};
 use std::borrow::Borrow;
-use sugars::boxed;
-
-use crate::error::Error;
 
 #[derive(Parser)]
 #[grammar = "grammar.pest"]
@@ -25,7 +23,7 @@ pub enum ASTInfo {
     /// type, name
     VariableDec(Type, String),
 
-    /// varibale_declarations, expressions
+    /// variable_declarations, expressions
     BlockStmt(Vec<Ast>, Vec<Ast>),
     /// condition, if_statement, else_statement: if (condition) {if_statements} else {else_statement}
     SelectionStmt(Box<Ast>, Box<Ast>, Option<Box<Ast>>),
@@ -37,7 +35,7 @@ pub enum ASTInfo {
     /// var, expression
     AssignmentExpr(Box<Ast>, Box<Ast>),
     /// operation, expression, expression: expression operation expression
-    BinaryExpr(Oprand, Box<Ast>, Box<Ast>),
+    BinaryExpr(Operand, Box<Ast>, Box<Ast>),
     /// name, args
     CallExpr(String, Vec<Ast>),
 
@@ -47,7 +45,7 @@ pub enum ASTInfo {
 }
 
 #[derive(Debug)]
-pub enum Oprand {
+pub enum Operand {
     Add,
     Sub,
     Mul,
@@ -68,7 +66,7 @@ pub enum Oprand {
     RShift,
 }
 
-impl ToString for Oprand {
+impl ToString for Operand {
     fn to_string(&self) -> String {
         match self {
             Self::Add => "Add".to_string(),
@@ -193,7 +191,7 @@ fn visit_func_declaration(pair: Pair<'_, Rule>, ast: &mut Vec<Ast>) {
 
     ast.push(Ast::new(
         position,
-        ASTInfo::FunctionDec(type_spec, id, params, boxed!(block_stmt)),
+        ASTInfo::FunctionDec(type_spec, id, params, Box::new(block_stmt)),
     ));
 }
 
@@ -300,7 +298,7 @@ fn visit_statement(pair: Pair<'_, Rule>, ast: &mut Vec<Ast>) {
             for node in children {
                 match node.as_rule() {
                     Rule::expression => {
-                        condition = Some(boxed!(visit_expression(node)));
+                        condition = Some(Box::new(visit_expression(node)));
                     }
                     Rule::statement if is_if => {
                         visit_statement(node, &mut if_statement);
@@ -316,8 +314,8 @@ fn visit_statement(pair: Pair<'_, Rule>, ast: &mut Vec<Ast>) {
                 position,
                 ASTInfo::SelectionStmt(
                     condition.unwrap(),
-                    boxed!(if_statement.into_iter().next().unwrap()),
-                    else_statement.into_iter().next().map(|x| boxed!(x)),
+                    Box::new(if_statement.into_iter().next().unwrap()),
+                    else_statement.into_iter().next().map(|x| Box::new(x)),
                 ),
             );
 
@@ -330,7 +328,7 @@ fn visit_statement(pair: Pair<'_, Rule>, ast: &mut Vec<Ast>) {
 
             for node in children {
                 match node.as_rule() {
-                    Rule::expression => condition = Some(boxed!(visit_expression(node))),
+                    Rule::expression => condition = Some(Box::new(visit_expression(node))),
                     Rule::statement => {
                         visit_statement(node, &mut loop_statement);
                     }
@@ -340,7 +338,7 @@ fn visit_statement(pair: Pair<'_, Rule>, ast: &mut Vec<Ast>) {
 
             let statement = ASTInfo::IterationStmt(
                 condition.unwrap(),
-                boxed!(loop_statement.into_iter().next().unwrap()),
+                Box::new(loop_statement.into_iter().next().unwrap()),
             );
             ast.push(Ast::new(position, statement));
         }
@@ -349,7 +347,7 @@ fn visit_statement(pair: Pair<'_, Rule>, ast: &mut Vec<Ast>) {
             let mut expression: Option<Box<Ast>> = None;
             for node in children {
                 match node.as_rule() {
-                    Rule::expression => expression = Some(boxed!(visit_expression(node))),
+                    Rule::expression => expression = Some(Box::new(visit_expression(node))),
                     _ => unreachable!(),
                 }
             }
@@ -420,7 +418,7 @@ fn visit_assignment_expr(pair: Pair<'_, Rule>) -> Ast {
     let expression = visit_expression(children.next().unwrap());
     Ast::new(
         position,
-        ASTInfo::AssignmentExpr(boxed!(var), boxed!(expression)),
+        ASTInfo::AssignmentExpr(Box::new(var), Box::new(expression)),
     )
 }
 
@@ -431,7 +429,7 @@ fn visit_var(pair: Pair<'_, Rule>) -> Ast {
     let mut expression = None;
     for node in children {
         if node.as_rule() == Rule::expression {
-            expression = Some(boxed!(visit_expression(node)));
+            expression = Some(Box::new(visit_expression(node)));
         }
     }
     Ast::new(position, ASTInfo::Variable(id, expression))
@@ -444,29 +442,32 @@ fn visit_binary_expr(pair: Pair<'_, Rule>) -> Ast {
 
     while let Some(mut expr) = children.next() {
         let op = match expr.as_rule() {
-            Rule::op_ge => Oprand::Ge,
-            Rule::op_le => Oprand::Le,
-            Rule::op_gt => Oprand::Gt,
-            Rule::op_lt => Oprand::Lt,
-            Rule::op_eq => Oprand::Eq,
-            Rule::op_ne => Oprand::Ne,
-            Rule::op_add => Oprand::Add,
-            Rule::op_sub => Oprand::Sub,
-            Rule::op_mul => Oprand::Mul,
-            Rule::op_div => Oprand::Div,
-            Rule::op_mod => Oprand::Mod,
-            Rule::op_rshift => Oprand::RShift,
-            Rule::op_lshift => Oprand::LShift,
-            Rule::op_bit_and => Oprand::Band,
-            Rule::op_bit_xor => Oprand::Bxor,
-            Rule::op_bit_or => Oprand::Bor,
-            Rule::op_or => Oprand::Lor,
-            Rule::op_and => Oprand::Land,
+            Rule::op_ge => Operand::Ge,
+            Rule::op_le => Operand::Le,
+            Rule::op_gt => Operand::Gt,
+            Rule::op_lt => Operand::Lt,
+            Rule::op_eq => Operand::Eq,
+            Rule::op_ne => Operand::Ne,
+            Rule::op_add => Operand::Add,
+            Rule::op_sub => Operand::Sub,
+            Rule::op_mul => Operand::Mul,
+            Rule::op_div => Operand::Div,
+            Rule::op_mod => Operand::Mod,
+            Rule::op_rshift => Operand::RShift,
+            Rule::op_lshift => Operand::LShift,
+            Rule::op_bit_and => Operand::Band,
+            Rule::op_bit_xor => Operand::Bxor,
+            Rule::op_bit_or => Operand::Bor,
+            Rule::op_or => Operand::Lor,
+            Rule::op_and => Operand::Land,
             _ => unreachable!(),
         };
         expr = children.next().unwrap();
         let rhs = visit_expression(expr);
-        lhs = Ast::new(position, ASTInfo::BinaryExpr(op, boxed!(lhs), boxed!(rhs)));
+        lhs = Ast::new(
+            position,
+            ASTInfo::BinaryExpr(op, Box::new(lhs), Box::new(rhs)),
+        );
     }
     lhs
 }
@@ -508,7 +509,7 @@ mod test_parse {
     }
 
     /// print the parse tree, like command tree's style
-    pub fn parse_tree_visable(parse_tree: Pair<'_, super::Rule>) {
+    pub fn parse_tree_visible(parse_tree: Pair<'_, super::Rule>) {
         dfs(&mut vec![], parse_tree);
     }
 
@@ -522,7 +523,7 @@ mod test_parse {
             .next()
             .unwrap();
         assert_eq!(root.as_rule(), super::Rule::program);
-        parse_tree_visable(root);
+        parse_tree_visible(root);
     }
     #[test]
     fn ast_test() {
