@@ -2,22 +2,14 @@
 #![feature(box_patterns)]
 #![feature(path_try_exists)]
 #![feature(is_some_with)]
-#[macro_use]
-extern crate pest_derive;
 
-mod ast_viz;
-mod codegen;
-mod error;
-mod parser;
-
-use crate::codegen::CodeBuilder;
-use ast_viz::DiGraph;
 use clap::Parser;
-use inkwell::context::Context;
-use parser::Ast;
+use std::fs;
 use std::io::Write;
-use std::process::exit;
-use std::{fs::File, io::Read, path::Path};
+use std::process;
+use std::{fs::File, path::Path};
+
+use cmm::{Ast, CodeBuilder, Context, DiGraph};
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -43,15 +35,7 @@ struct Args {
 
 fn main() {
     let args: Args = Args::parse();
-    let mut source_file = File::open(&args.file).expect("Unable to open source file!");
-    let mut source_code = String::new();
-
-    // Read source file
-    source_file
-        .read_to_string(&mut source_code)
-        .expect("Unable to read the file!");
-
-    let context = Context::create();
+    let source_code = fs::read_to_string(&args.file).expect("Unable to open source file!");
     let filename = match args.output {
         Some(name) => name,
         None => {
@@ -64,6 +48,7 @@ fn main() {
         }
     };
 
+    let context = Context::create();
     match Ast::parse(source_code) {
         Ok(ast) => match CodeBuilder::new(&context, args.file.as_str(), &ast, args.opt) {
             Ok(codebuilder) => {
@@ -72,23 +57,22 @@ fn main() {
                     (false, true) => codebuilder.build_llvmir(Path::new(&filename)),
                     (false, false) => {
                         let tmpfile = format!("{}.s", filename);
-                        let io_c = if std::fs::try_exists("/usr/lib/cmm/io.c").is_ok_and(|b| *b) {
+                        let io_c = if fs::try_exists("/usr/lib/cmm/io.c").is_ok_and(|b| *b) {
                             "/usr/lib/cmm/io.c"
-                        } else if std::fs::try_exists("./io.c").is_ok_and(|b| *b) {
+                        } else if fs::try_exists("./io.c").is_ok_and(|b| *b) {
                             "./io.c"
                         } else {
                             eprintln!("Cannot find io.c in /usr/lib/cmm or current directory");
-                            exit(1);
+                            process::exit(1);
                         };
                         codebuilder.build_asm(Path::new(&tmpfile));
-                        std::process::Command::new("clang")
+                        process::Command::new("clang")
                             .args([tmpfile.as_str(), io_c])
                             .spawn()
                             .expect("Fail to start clang")
                             .wait()
                             .expect("Fail to link io.c with clang");
-                        std::fs::remove_file(Path::new(&tmpfile))
-                            .expect("Fail to remove temp file");
+                        fs::remove_file(Path::new(&tmpfile)).expect("Fail to remove temp file");
                     }
                 };
 
@@ -102,12 +86,12 @@ fn main() {
             }
             Err(e) => {
                 eprintln!("Error: {}", e);
-                exit(1);
+                process::exit(1);
             }
         },
         Err(e) => {
             eprintln!("Error: {}", e);
-            exit(1);
+            process::exit(1);
         }
     }
 }

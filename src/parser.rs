@@ -315,7 +315,7 @@ fn visit_statement(pair: Pair<'_, Rule>, ast: &mut Vec<Ast>) {
                 ASTInfo::SelectionStmt(
                     condition.unwrap(),
                     Box::new(if_statement.into_iter().next().unwrap()),
-                    else_statement.into_iter().next().map(|x| Box::new(x)),
+                    else_statement.into_iter().next().map(Box::new),
                 ),
             );
 
