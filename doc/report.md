@@ -276,6 +276,7 @@ pub struct CodeBuilder<'ctx> {
 代码优化考虑使用 LLVM 的 [Pass](https://llvm.org/docs/Passes.html) 进行优化，这里采用的优化是基于函数的优化，即优化的单位是函数而不是整个文件程序。
 
 优化采用的关键结构为：
+
 ```rust
 pub struct CodeBuilder<'ctx> {
     ...
@@ -283,7 +284,9 @@ pub struct CodeBuilder<'ctx> {
     fpm: Option<PassManager<FunctionValue<'ctx>>>,
 }
 ```
+
 当没有启用优化时，将 `fpm` 初始化为 `None` 即可，否则我们这样初始化：
+
 ```rust
 // Create FPM
 let mut fpm = None;
@@ -300,6 +303,7 @@ if opt {
     fpm = Some(temp)
 }
 ```
+
 当完成一个函数的生成后，调用 `fpm` 对函数进行优化：
 
 ```rust
@@ -308,8 +312,6 @@ if let Some(fpm) = &self.fpm {
   fpm.run_on(&function);
 }
 ```
-
-
 
 启用的优化及其描述如下表：
 
@@ -320,8 +322,6 @@ if let Some(fpm) = &self.fpm {
 | Global Value Numbering         | 对全局值计算进行编号，消除部分冗余指令     |                                                                            |
 | Simplify CFG                   | 执行死代码消除和基本的块合并               |                                                                            |
 | Promote Memory to Register     | 即将内存的引用转换到寄存器中               |                                                                            |
-
-
 
 一些具体的例子如下：
 
@@ -334,32 +334,31 @@ int f(int x) {
 ```
 
 生成的 asm 如下：
+
 ```assembly
 # No Optimization
 _f:
-	.cfi_startproc
-	movl	%edi, -4(%rsp)
-	movl	-4(%rsp), %eax
-	addl	$3, %eax
-	movl	-4(%rsp), %ecx
-	addl	$3, %ecx
-	imull	%ecx, %eax
-	retq
-	.cfi_endproc
+    .cfi_startproc
+    movl %edi, -4(%rsp)
+    movl -4(%rsp), %eax
+    addl $3, %eax
+    movl -4(%rsp), %ecx
+    addl $3, %ecx
+    imull %ecx, %eax
+    retq
+    .cfi_endproc
 
 # With Optimization
 _f:
-	.cfi_startproc
-	movl	%edi, %eax
-	addl	$3, %eax
-	imull	%eax, %eax
-	retq
-	.cfi_endproc
+    .cfi_startproc
+    movl %edi, %eax
+    addl $3, %eax
+    imull %eax, %eax
+    retq
+    .cfi_endproc
 ```
 
 显然，两次对 `1+2+x` 的计算被优化为了一次。
-
-
 
 **Reassociate Expressions**
 
@@ -374,26 +373,24 @@ int f(int x) {
 ```assembly
 # No Optimization
 _f:
-	.cfi_startproc
-	movl	%edi, -4(%rsp)
-	movl	-4(%rsp), %eax
-	addl	$5, %eax
-	addl	$4, %eax
-	addl	$8, %eax
-	retq
-	.cfi_endproc
+    .cfi_startproc
+    movl %edi, -4(%rsp)
+    movl -4(%rsp), %eax
+    addl $5, %eax
+    addl $4, %eax
+    addl $8, %eax
+    retq
+    .cfi_endproc
 # With Optimization
 _f:
-	.cfi_startproc
-	movl	%edi, %eax
-	addl	$17, %eax
-	retq
-	.cfi_endproc
+    .cfi_startproc
+    movl %edi, %eax
+    addl $17, %eax
+    retq
+    .cfi_endproc
 ```
 
 多次对常数运算被优化为一次常数加法运算。
-
-
 
 **Global Value Numbering**
 
@@ -405,8 +402,6 @@ int f(int a, int b) {
     d = a + b;
 }
 ```
-
-
 
 这个优化的现象通过 lr 代码更加清晰：
 
@@ -462,9 +457,7 @@ store i32 %2, i32* %c, align 4
 store i32 %2, i32* %d, align 4
 ```
 
-编译器发现 `a+b` 在 `c` 中已经计算过了，所以算 `d ` 的时候就不会再次计算了。
-
-
+编译器发现 `a+b` 在 `c` 中已经计算过了，所以算 `d` 的时候就不会再次计算了。
 
 **Simplify CFG**
 
@@ -487,32 +480,30 @@ int f() {
 ```assembly
 # No Optimization
 _f:
-	.cfi_startproc
-	xorl	%eax, %eax
-	testb	$1, %al
-	jne	LBB0_1
-	jmp	LBB0_2
+    .cfi_startproc
+    xorl %eax, %eax
+    testb $1, %al
+    jne LBB0_1
+    jmp LBB0_2
 LBB0_1:
-	movl	$1, -4(%rsp)
-	jmp	LBB0_3
+    movl $1, -4(%rsp)
+    jmp LBB0_3
 LBB0_2:
-	movl	$2, -4(%rsp)
+    movl $2, -4(%rsp)
 LBB0_3:
-	movl	-4(%rsp), %eax
-	retq
-	.cfi_endproc
+    movl -4(%rsp), %eax
+    retq
+    .cfi_endproc
 
 # With Optimization
 _f:
-	.cfi_startproc
-	movl	$2, %eax
-	retq
-	.cfi_endproc
+    .cfi_startproc
+    movl $2, %eax
+    retq
+    .cfi_endproc
 ```
 
 这个优化也比较明显，分析出代码不会执行 `if` 分支，所以直接删除了那一段，而直接执行了 `a=2` 并返回。（其他优化过程优化掉了 `a=2` 的计算）
-
-
 
 **Promote Memory to Register**
 
@@ -531,30 +522,29 @@ int f() {
 ```assembly
 # No Optimization
 _f:
-	.cfi_startproc
-	leaq	-12(%rsp), %rax
-	movq	%rax, -24(%rsp)
-	movq	-24(%rsp), %rax
-	movl	$0, (%rax)
-	movq	-24(%rsp), %rax
-	movl	$1, 4(%rax)
-	movq	-24(%rsp), %rax
-	movl	$3, 8(%rax)
-	retq
-	.cfi_endproc
-	
+    .cfi_startproc
+    leaq -12(%rsp), %rax
+    movq %rax, -24(%rsp)
+    movq -24(%rsp), %rax
+    movl $0, (%rax)
+    movq -24(%rsp), %rax
+    movl $1, 4(%rax)
+    movq -24(%rsp), %rax
+    movl $3, 8(%rax)
+    retq
+    .cfi_endproc
+    
 # With Optimization
 _f:
-	.cfi_startproc
-	movl	$0, -12(%rsp)
-	movl	$1, -8(%rsp)
-	movl	$3, -4(%rsp)
-	retq
-	.cfi_endproc
+    .cfi_startproc
+    movl $0, -12(%rsp)
+    movl $1, -8(%rsp)
+    movl $3, -4(%rsp)
+    retq
+    .cfi_endproc
 ```
 
 可以看到，重复的内存访问都被简化到了 `sp` 寄存器的操作上。
-
 
 ## AST 可视化
 AST 可视化采用的是 [Graphviz](https://graphviz.org/) ，其接受 dot 文件并将其渲染为指定格式的图片。

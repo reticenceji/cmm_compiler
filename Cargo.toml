@@ -1,15 +1,15 @@
 [package]
 name = "cmm"
 authors = ["Ji Gaoqiang", "Wu Yifei", "Gao Chenxi"]
-version = "0.2.0"
+version = "0.3.2"
 edition = "2021"
 description = "cmm is a simplified version of the C language introduced after the book \"Compiler Construction: Principles and Practice\"."
 license = "MIT OR Apache-2.0"
-readme = "report.md"
+readme = "README.md"
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-sugars = "3.0.1"
 pest = "2.0.2"
 pest_derive = "2.1.0"
 clap = { version = "3.1", features = ["derive"] }
@@ -18,3 +18,24 @@ inkwell = { git = "https://github.com/TheDan64/inkwell", branch = "master", feat
 ] }
 either = "1.6.1"
 lazy_static = "1.4.0"
+
+[package.metadata.deb]
+pre-depends = "clang (>= 10.0.0)"
+extended-description-file = "README.md"
+assets = [
+    [
+        "target/release/main",
+        "usr/bin/cmm",
+        "755",
+    ],
+    [
+        "doc/report.md",
+        "usr/share/doc/cmm/Document.md",
+        "644",
+    ],
+    [
+        "src/io.c",
+        "usr/lib/cmm/io.c",
+        "644",
+    ],
+]
