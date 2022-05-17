@@ -24,8 +24,8 @@ pre-depends = "clang (>= 10.0.0)"
 extended-description-file = "README.md"
 assets = [
     [
-        "target/release/cmm",
-        "usr/bin/",
+        "target/release/main",
+        "usr/bin/cmm",
         "755",
     ],
     [
