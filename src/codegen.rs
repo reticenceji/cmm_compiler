@@ -1,5 +1,5 @@
 use crate::error::{Error, ErrorType, Result};
-use crate::parser::{ASTInfo, Oprand, Type, AST};
+use crate::parser::{ASTInfo, Ast, Operand, Type};
 use either::Either;
 use inkwell::{
     builder::Builder,
@@ -29,7 +29,7 @@ pub struct CodeBuilder<'ctx> {
     global_variables: HashMap<String, (Type, PointerValue<'ctx>)>,
     /// Global functions.  Map functions' name to it's type and pointer.
     global_functions: HashMap<String, (Type, FunctionValue<'ctx>)>,
-    /// Local varibales. It represents the nesting of scopes.
+    /// Local variables. It represents the nesting of scopes.
     variables_stack: Vec<HashMap<String, (Type, PointerValue<'ctx>)>>,
     /// The function that code builder is generating.
     current_function: Option<(Type, FunctionValue<'ctx>)>,
@@ -38,7 +38,7 @@ pub struct CodeBuilder<'ctx> {
 }
 
 impl<'ctx> CodeBuilder<'ctx> {
-    pub fn new<T>(context: &'ctx Context, name: T, ast: &Vec<AST>, opt: bool) -> Result<Self>
+    pub fn new<T>(context: &'ctx Context, name: T, ast: &Vec<Ast>, opt: bool) -> Result<Self>
     where
         T: Borrow<str>,
     {
@@ -107,7 +107,7 @@ impl<'ctx> CodeBuilder<'ctx> {
             .unwrap();
     }
 
-    fn generate(&mut self, ast: &Vec<AST>) -> Result<()> {
+    fn generate(&mut self, ast: &Vec<Ast>) -> Result<()> {
         let input = self.context.i32_type().fn_type(&[], false);
         let input = self
             .module
@@ -150,10 +150,10 @@ impl<'ctx> CodeBuilder<'ctx> {
         }
         let v = self
             .module
-            .add_global(type_.to_llvm_basic_type(&self.context), None, name);
+            .add_global(type_.to_llvm_basic_type(self.context), None, name);
         v.set_initializer(&self.context.i32_type().const_int(0, false));
         self.global_variables
-            .insert(name.to_string(), (type_.clone(), v.as_pointer_value()));
+            .insert(name.to_string(), (*type_, v.as_pointer_value()));
         Ok(())
     }
 
@@ -162,8 +162,8 @@ impl<'ctx> CodeBuilder<'ctx> {
         position: (usize, usize),
         type_: &Type,
         name: &str,
-        params: &Vec<(Type, String)>,
-        body: &AST,
+        params: &[(Type, String)],
+        body: &Ast,
     ) -> Result<()> {
         if self.global_variables.contains_key(name) || self.global_functions.contains_key(name) {
             Err(Error::new(position, ErrorType::FunctionRedefinition))?
@@ -219,7 +219,7 @@ impl<'ctx> CodeBuilder<'ctx> {
         Ok(())
     }
 
-    fn gen_block_stmt(&mut self, ast: &AST) -> Result<()> {
+    fn gen_block_stmt(&mut self, ast: &Ast) -> Result<()> {
         let info = &ast.info;
 
         if let ASTInfo::BlockStmt(variables, statements) = info {
@@ -274,7 +274,7 @@ impl<'ctx> CodeBuilder<'ctx> {
         Ok(())
     }
 
-    fn gen_statement(&mut self, stmt: &AST) -> Result<()> {
+    fn gen_statement(&mut self, stmt: &Ast) -> Result<()> {
         match &stmt.info {
             ASTInfo::BlockStmt(_, _) => self.gen_block_stmt(stmt)?,
             ASTInfo::SelectionStmt(cond, then_stmt, else_stmt) => {
@@ -385,21 +385,21 @@ impl<'ctx> CodeBuilder<'ctx> {
             ASTInfo::BinaryExpr(op, lhs, rhs) => {
                 self.gen_binary_expr(op, lhs, rhs)?;
             }
-            ASTInfo::CallExpr(name, argments) => {
-                self.gen_function_call(stmt.position, name, argments)?;
+            ASTInfo::CallExpr(name, arguments) => {
+                self.gen_function_call(stmt.position, name, arguments)?;
             }
             _ => unreachable!(),
         }
         Ok(())
     }
 
-    fn gen_expression(&self, ast: &AST) -> Result<(Type, BasicValueEnum)> {
+    fn gen_expression(&self, ast: &Ast) -> Result<(Type, BasicValueEnum)> {
         match &ast.info {
             ASTInfo::AssignmentExpr(var, expr) => self.gen_assignment_expr(var, expr),
             ASTInfo::BinaryExpr(op, lhs, rhs) => self.gen_binary_expr(op, lhs, rhs),
-            ASTInfo::CallExpr(name, argments) => {
+            ASTInfo::CallExpr(name, arguments) => {
                 // 在expression上下文中不应该返回void
-                let r = self.gen_function_call(ast.position, name, argments);
+                let r = self.gen_function_call(ast.position, name, arguments);
                 if r.is_ok() && r.as_ref().unwrap().0 == Type::Void {
                     Err(Error::new(ast.position, ErrorType::ExpressionVoidType))?
                 }
@@ -424,9 +424,9 @@ impl<'ctx> CodeBuilder<'ctx> {
 
     fn gen_binary_expr(
         &self,
-        op: &Oprand,
-        left: &AST,
-        right: &AST,
+        op: &Operand,
+        left: &Ast,
+        right: &Ast,
     ) -> Result<(Type, BasicValueEnum)> {
         let (lhs, rhs) = (self.gen_expression(left)?.1, self.gen_expression(right)?.1);
         let lhs = match lhs {
@@ -447,44 +447,44 @@ impl<'ctx> CodeBuilder<'ctx> {
         };
 
         let value = match op {
-            Oprand::Add => self.builder.build_int_add(lhs, rhs, ""),
-            Oprand::Sub => self.builder.build_int_sub(lhs, rhs, ""),
-            Oprand::Mul => self.builder.build_int_mul(lhs, rhs, ""),
-            Oprand::Div => self.builder.build_int_signed_div(lhs, rhs, ""),
-            Oprand::Mod => self.builder.build_int_signed_rem(lhs, rhs, ""),
-            Oprand::Ge => self
+            Operand::Add => self.builder.build_int_add(lhs, rhs, ""),
+            Operand::Sub => self.builder.build_int_sub(lhs, rhs, ""),
+            Operand::Mul => self.builder.build_int_mul(lhs, rhs, ""),
+            Operand::Div => self.builder.build_int_signed_div(lhs, rhs, ""),
+            Operand::Mod => self.builder.build_int_signed_rem(lhs, rhs, ""),
+            Operand::Ge => self
                 .builder
                 .build_int_compare(IntPredicate::SGE, lhs, rhs, ""),
-            Oprand::Le => self
+            Operand::Le => self
                 .builder
                 .build_int_compare(IntPredicate::SLE, lhs, rhs, ""),
-            Oprand::Gt => self
+            Operand::Gt => self
                 .builder
                 .build_int_compare(IntPredicate::SGT, lhs, rhs, ""),
-            Oprand::Lt => self
+            Operand::Lt => self
                 .builder
                 .build_int_compare(IntPredicate::SLT, lhs, rhs, ""),
-            Oprand::Eq => self
+            Operand::Eq => self
                 .builder
                 .build_int_compare(IntPredicate::EQ, lhs, rhs, ""),
-            Oprand::Ne => self
+            Operand::Ne => self
                 .builder
                 .build_int_compare(IntPredicate::NE, lhs, rhs, ""),
-            Oprand::Band => self.builder.build_and(lhs, rhs, ""),
-            Oprand::Bor => self.builder.build_or(lhs, rhs, ""),
-            Oprand::Bxor => self.builder.build_xor(lhs, rhs, ""),
-            Oprand::Land => {
+            Operand::Band => self.builder.build_and(lhs, rhs, ""),
+            Operand::Bor => self.builder.build_or(lhs, rhs, ""),
+            Operand::Bxor => self.builder.build_xor(lhs, rhs, ""),
+            Operand::Land => {
                 let a = self.builder.build_and(lhs, rhs, "");
                 let b = self.context.i32_type().const_int(0, false);
                 self.builder.build_int_compare(IntPredicate::NE, a, b, "")
             }
-            Oprand::Lor => {
+            Operand::Lor => {
                 let a = self.builder.build_or(lhs, rhs, "");
                 let b = self.context.i32_type().const_int(0, false);
                 self.builder.build_int_compare(IntPredicate::NE, a, b, "")
             }
-            Oprand::LShift => self.builder.build_left_shift(lhs, rhs, ""),
-            Oprand::RShift => self.builder.build_right_shift(lhs, rhs, true, ""),
+            Operand::LShift => self.builder.build_left_shift(lhs, rhs, ""),
+            Operand::RShift => self.builder.build_right_shift(lhs, rhs, true, ""),
         };
         // 其实，更C语言的做法是在运算符两边类型不同的时候进行隐式转换
         // 不过，我这里将所有的类型都转换成了i32类型
@@ -503,11 +503,11 @@ impl<'ctx> CodeBuilder<'ctx> {
         &self,
         position: (usize, usize),
         name: &str,
-        argments: &Vec<AST>,
+        arguments: &Vec<Ast>,
     ) -> Result<(Type, BasicValueEnum)> {
         let mut args = Vec::new();
-        for argment in argments {
-            let arg = self.gen_expression(argment)?.1;
+        for argument in arguments {
+            let arg = self.gen_expression(argument)?.1;
             args.push(arg.into())
         }
         let function = self.global_functions.get(name);
@@ -517,7 +517,7 @@ impl<'ctx> CodeBuilder<'ctx> {
                 match return_value.try_as_basic_value() {
                     Either::Left(value) => {
                         if value.get_type() == type_.to_llvm_basic_type(self.context) {
-                            return Ok((*type_, value));
+                            Ok((*type_, value))
                         } else {
                             Err(Error::new(position, ErrorType::MismatchedType))?
                         }
@@ -535,7 +535,7 @@ impl<'ctx> CodeBuilder<'ctx> {
         }
     }
 
-    fn gen_assignment_expr(&self, var: &AST, expr: &AST) -> Result<(Type, BasicValueEnum)> {
+    fn gen_assignment_expr(&self, var: &Ast, expr: &Ast) -> Result<(Type, BasicValueEnum)> {
         let var_info = &var.info;
         if let ASTInfo::Variable(name, index) = var_info {
             let (type_left, ptr) =
@@ -556,7 +556,7 @@ impl<'ctx> CodeBuilder<'ctx> {
         &self,
         position: (usize, usize),
         name: &str,
-        index: &Option<&AST>,
+        index: &Option<&Ast>,
     ) -> Result<(Type, PointerValue)> {
         let (type_, ptr) = self.get_name_ptr(position, name)?;
         match type_ {
@@ -632,7 +632,7 @@ mod test_parse {
                 let mut buf = String::new();
                 file.read_to_string(&mut buf).unwrap();
 
-                let ast = super::AST::parse(buf).unwrap();
+                let ast = super::Ast::parse(buf).unwrap();
                 let context = Context::create();
                 let codegen = CodeBuilder::new(&context, "test", &ast, false)
                     .expect("Source code file test failed");

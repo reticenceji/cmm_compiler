@@ -1,80 +1,16 @@
-# C-
+# Cmm
 
-C-是《Compiler Construction: Principles and Practice》书后介绍的一个精简版的C语言。
+Cmm是《Compiler Construction: Principles and Practice》书后介绍的一个精简版的C语言的实现，略有不同，主要是增加了部分运算符。
 
-构建：
+程序的使用方法：类似于gcc/clang。通过项目release的deb包进行安装。`cmm source.c`即可进行编译，编译的默认结果为`a.out`。更详细的使用方法查看`cmm --help`。
 
-```shell
-cargo build --release
-```
+程序的构建方法：除了[Rust](https://www.rust-lang.org/)之外，主要需要llvm的依赖。在Ubuntu中可以使用`sudo apt install llvm`完成依赖安装。llvm的版本可以在`Cargo.toml`进行配置。配置完成后`cargo build`即可进行构建。
 
-运行：
+程序主要使用的第三方库：
 
-```shell
-cmm <source file>
-```
+- 词法分析&语法分析: 使用 [PEST](https://pest.rs/) 提供的 [Parsing expression grammars](https://pest.rs/book/grammars/peg.html)，来对词法和语法进行描述。
+- 代码生成: 使用 [LLVM](https://llvm.org/) 的Rust binding [inkwell](https://github.com/TheDan64/inkwell)
+- 代码优化: 使用 [PassManager](https://thedan64.github.io/inkwell/inkwell/passes/struct.PassManager.html)，基于函数进行优化。
+- AST可视化: 使用 [Graphviz](http://graphviz.org) 对 AST 进行可视化。
 
-然后利用本地的编译器进行编译即可，如：
-
-```
-clang io.c test.s
-```
-
-> 本项目只实现到汇编代码的生成，从汇编到机器码是机械的翻译过程，并不予以实现。
-
-## 词法分析&语法分析
-
-使用 [PEST](https://pest.rs/) 提供的 [Parsing expression grammars](https://pest.rs/book/grammars/peg.html)，来对词法和语法进行描述。
-
-## 语义分析
-
-## 代码优化
-使用 [PassManager](https://thedan64.github.io/inkwell/inkwell/passes/struct.PassManager.html)，基于函数进行优化。
-
-优化包括：
-- instruction combining
-- reassociate
-- GVN
-- CFG simplification
-- promote memory to register
-
-如果要进行优化，使用 `--opt` 选项：
-```shell
-cmm test/opt/test1.c -opt
-```
-
-## 代码生成
-
-使用 [LLVM](https://llvm.org/) 的Rust binding [inkwell](https://github.com/TheDan64/inkwell)。
-
-## 测试
-
-## AST 可视化
-使用 [Graphviz](http://graphviz.org) 对 AST 进行可视化。
-
-生成 dot 文件：
-```shell
-cmm <soruce file> --dotfile <dot file>
-```
-
-从 dot 文件生成 png 图片：
-```shell
-dot <dotfile> -T png -o dot.png
-```
-
-例如，生成 [test.c](test/ok/test.c) 的 ast 可视化文件：
-```shell
-cmm test/ok/test.c --dotfile ./dotfile
-dot dotfile -T png -o ast.png
-```
-![](ast.png)
-
-## TODO
-
-- [x] `input`和 `output`函数。
-- [x] 完整的测试。
-- [x] 代码优化。
-- [x] 现在不能有全局变量，需要修复。
-- [x] 文档。
-- [x] 语法树的可视化。
-- [x] 执行环境。
+![ast示例](./doc/ast.png)

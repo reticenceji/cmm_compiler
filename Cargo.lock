@@ -111,7 +111,7 @@ dependencies = [
 
 [[package]]
 name = "cmm"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "clap",
  "either",
@@ -119,7 +119,6 @@ dependencies = [
  "lazy_static",
  "pest",
  "pest_derive",
- "sugars",
 ]
 
 [[package]]
@@ -452,12 +451,6 @@ name = "strsim"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "73473c0e59e6d5812c5dfe2a064a6444949f089e20eec9a2e5506596494e4623"
-
-[[package]]
-name = "sugars"
-version = "3.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cc0db74f9ee706e039d031a560bd7d110c7022f016051b3d33eeff9583e3e67a"
 
 [[package]]
 name = "syn"
