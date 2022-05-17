@@ -26,7 +26,7 @@ jobs:
         echo "test for algorithm"
         for file in `ls`
         do
-          if [[ $file =~ ".c" ]] && [$file != "io.c"];
+          if [[ $file =~ ".c" ]] && [ $file != "io.c" ];
           then
             ../../target/debug/main $file
             echo "================"$file"================"
@@ -40,7 +40,7 @@ jobs:
         echo "test for with_output"
         for file in `ls`
         do
-          if [[ $file =~ ".c" ]]  && [$file != "io.c"];
+          if [[ $file =~ ".c" ]] && [ $file != "io.c" ];
           then
             ../../target/debug/main $file
             echo "================"$file"================"
@@ -54,7 +54,7 @@ jobs:
         cp ../../src/io.c ./io.c
         for file in `ls`
         do
-          if [[ $file =~ ".c" ]]  && [$file != "io.c"];
+          if [[ $file =~ ".c" ]] && [ $file != "io.c" ];
           then
             echo "================"$file"================"
             if ../../target/debug/main $file;then 
@@ -72,7 +72,7 @@ jobs:
         cp ../../src/io.c ./io.c
         for file in `ls`
         do
-          if [[ $file =~ ".c" ]]  && [$file != "io.c"];
+          if [[ $file =~ ".c" ]] && [ $file != "io.c" ];
           then
             echo "================"$file"================"
             if ../../target/debug/main $file;then 
