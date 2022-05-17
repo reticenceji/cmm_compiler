@@ -260,16 +260,16 @@ pub struct CodeBuilder<'ctx> {
 }
 ```
 
-| 功能               | 对应的实现函数名      | 实现说明                                                     |
-| ------------------ | --------------------- | ------------------------------------------------------------ |
-| 生成函数           | `gen_function`        | 1. 调用LLVM的接口声明函数<br />2. 将函数参数放进作用域栈<br />3. 调用`gen_block_stmt`生成函数体<br />4. 将函数放入函数表 |
-| 生成全局变量       | `gen_global_variable` | 1. 开辟空间存放变量<br />2. 设置初始值0<br />3. 将变量放入全局变量表 |
+| 功能               | 对应的实现函数名      | 实现说明                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| ------------------ | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 生成函数           | `gen_function`        | 1. 调用LLVM的接口声明函数<br />2. 将函数参数放进作用域栈<br />3. 调用`gen_block_stmt`生成函数体<br />4. 将函数放入函数表                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| 生成全局变量       | `gen_global_variable` | 1. 开辟空间存放变量<br />2. 设置初始值0<br />3. 将变量放入全局变量表                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | 生成语句           | `gen_statement`       | 1. 语句可能是块语句，那么调用`gen_statement`<br />2. 语句可能是选择语句，我们构造三个BasicBlock和跳转语句，当条件满足的时候我们跳到IF_Block，条件不满足跳到ELSE_Block，最后都跳到DEST_Block。条件是表达式，如果表达式不为0代表条件满足。<br />3. 语句可能是循环语句，我们构造三个BasicBlock和跳转语句。第一个HEAD_Block检测条件，条件满足跳到LOOP_Block，不满足跳到DEST_Block。LOOP_Block执行循环体内代码，完成后调回HEAD_Block。<br />4. 语句可能是返回语句。构造return语句离开函数。<br />5. 语句可能是表达式，则调用对应的生成表达式的函数 |
-| 生成块语句         | `gen_block_stmt`      | 1. 遍历变量声明，将变量放入作用域栈<br />2. 遍历子语句，调用`gen_statement`生成子语句 |
-| 生成表达式         | `gen_expression`      | 根据表达式的类型调用下面生成表达式的函数                     |
-| 生成运算表达式     | `gen_binary_expr`     | 1. 检查操作数的类型，如果不匹配则进行隐式转换<br />2. 根据运算符，生成对应的运算的代码 |
-| 生成函数调用表达式 | `gen_function_call`   | 1. 准备参数，参数是表达式，调用`gen_expression`<br />2. 构造函数调用语句<br />3. 检查函数的返回值类型是否匹配 |
-| 生成赋值表达式     | `gen_assignment_expr` | 1. 查变量表找到变量<br />2. 将右值赋值给变量，右值是表达式,调用`gen_expression` |
+| 生成块语句         | `gen_block_stmt`      | 1. 遍历变量声明，将变量放入作用域栈<br />2. 遍历子语句，调用`gen_statement`生成子语句                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| 生成表达式         | `gen_expression`      | 根据表达式的类型调用下面生成表达式的函数                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| 生成运算表达式     | `gen_binary_expr`     | 1. 检查操作数的类型，如果不匹配则进行隐式转换<br />2. 根据运算符，生成对应的运算的代码                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| 生成函数调用表达式 | `gen_function_call`   | 1. 准备参数，参数是表达式，调用`gen_expression`<br />2. 构造函数调用语句<br />3. 检查函数的返回值类型是否匹配                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| 生成赋值表达式     | `gen_assignment_expr` | 1. 查变量表找到变量<br />2. 将右值赋值给变量，右值是表达式,调用`gen_expression`                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 
 ## 代码优化
 
@@ -313,13 +313,13 @@ if let Some(fpm) = &self.fpm {
 
 启用的优化及其描述如下表：
 
-| Name                           | Description                                | Code Example                                                 |
-| ------------------------------ | ------------------------------------------ | ------------------------------------------------------------ |
+| Name                           | Description                                | Code Example                                                               |
+| ------------------------------ | ------------------------------------------ | -------------------------------------------------------------------------- |
 | Combine Redundant Instructions | 组合指令以形成更少、更简单的指令           | %Y = add i32 %X, 1<br />%Z = add i32 %Y, 1<br />=><br />%Z = add i32 %X, 2 |
-| Reassociate Expressions        | 重新关联表达式的顺序，以得到更好的常数传播 | 4 + (x + 5) ⇒ x + (4 + 5)                                    |
-| Global Value Numbering         | 对全局值计算进行编号，消除部分冗余指令     |                                                              |
-| Simplify CFG                   | 执行死代码消除和基本的块合并               |                                                              |
-| Promote Memory to Register     | 即将内存的引用转换到寄存器中               |                                                              |
+| Reassociate Expressions        | 重新关联表达式的顺序，以得到更好的常数传播 | 4 + (x + 5) ⇒ x + (4 + 5)                                                  |
+| Global Value Numbering         | 对全局值计算进行编号，消除部分冗余指令     |                                                                            |
+| Simplify CFG                   | 执行死代码消除和基本的块合并               |                                                                            |
+| Promote Memory to Register     | 即将内存的引用转换到寄存器中               |                                                                            |
 
 
 
@@ -557,6 +557,151 @@ _f:
 
 
 ## AST 可视化
+AST 可视化采用的是 [Graphviz](https://graphviz.org/) ，其接受 dot 文件并将其渲染为指定格式的图片。
+
+可视化的关键结构有：
+```rust
+
+#[derive(Debug)]
+pub struct DiGraph {
+    name: Option<String>,
+    id: usize,
+    conts: Vec<Content>,
+}
+
+#[derive(Debug)]
+enum Node {
+    Symbol(usize, String),
+    Subgraph(DiGraph),
+}
+
+#[derive(Debug)]
+struct Edge {
+    from: usize,
+    to: usize,
+}
+
+#[derive(Debug)]
+enum Content {
+    Node(Node),
+    Edge(Edge),
+}
+
+```
+
+由于 dot 文件格式的要求，每个节点都需要一个唯一的 ID 进行标记，因此每分配一个节点，都需要分配一个 ID，这一点可以通过一个 `IDAllocator` 实现（不是重点，就不予以展示了）。
+
+结构解析：
+- `DiGraph`：在我们的设计中，每一个非终结符都是一个 `DiGraph`，这个图是一个树形结构，根节点即这个非终结符。
+  - `name` 是这个非终结符的名称，用以在图中展示。
+  - `id` 即前文提到的 dot 文件格式的要求。
+  - `conts` 是这个非终结符下的一系列内容（可以理解为树中根节点下面所有的边和节点）。
+- `Node`：即一个单独的节点，是一个 `Enum` 类型
+  - 可以是 `Symbol`，即单个的节点。
+  - `Subgraph`，如其名，子图，是一系列节点的集合，也可以认为是子数。
+  - 这样设计的目的，是方面通过递归的方式进行图形绘制。
+- `Edge`：记录节点之间边，`from` 和 `to` 即两个节点的 ID 。
+- `Content`：即一个 `DiGraph` 的内容。一棵树包括节点和边，所以 `Content` 也是这两种类型。
+
+这里面包含很多递归的定义，主要是方便递归的生产 dot 文件，可能造成理解上的一些困难。
+
+生成 dot 文件的核心代码定义为 `DiGraph` 的 `parse_ast` 方法：
+```rust
+fn parse_ast(&mut self, ast: &AST) {
+    match &ast.info {
+        ASTInfo::FunctionDec(ftype, name, params, box ast) => {}
+        ASTInfo::VariableDec(vtype, name) => {}
+        ASTInfo::BlockStmt(ast1, ast2) => {
+            self.name = Some("BlockStmt".to_string());
+            for ast in ast1 {
+                let subg = DiGraph::from_ast(ast);
+                let node = Node::Subgraph(subg);
+
+                self.add_cont(Content::Edge(Edge::new(&self, &node)));
+                self.add_cont(Content::Node(node));
+            }
+
+            for ast in ast2 {
+                let subg = DiGraph::from_ast(ast);
+                let node = Node::Subgraph(subg);
+
+                self.add_cont(Content::Edge(Edge::new(&self, &node)));
+                self.add_cont(Content::Node(node));
+            }
+        }
+        ASTInfo::SelectionStmt(box ast1, box ast2, ast3) => {}
+        ASTInfo::IterationStmt(box ast1, box ast2) => {}
+        ASTInfo::ReturnStmt(ast) => {}
+        ASTInfo::AssignmentExpr(box ast1, box ast2) => {}
+        ASTInfo::BinaryExpr(oprand, box ast1, box ast2) => {}
+        ASTInfo::CallExpr(name, params) => {}
+        ASTInfo::Variable(name, ast) => {}
+        ASTInfo::IntLiteral(val) => {}
+    }
+```
+
+解析思路是显然的，由于 AST 是个 Enum 的类型，我们单独对每个类型进行解析，如果又遇到 AST 结构（也即一个非终结符），就递归的调用自己即可。
+解析过程以 `BlockStmt` 为例：
+- 由于 `BlockStmt` 是一个非终结符（所以这必须是一个 `DiGraph` 的方法），我们先设置自己的名称，即在图中展示的 Label。
+- `ast1` 是一个 AST 的 Vec，对其中每一个 AST 结构，其本质就是一个非终结符，也即一个 `DiGraph` 结构。
+- 所以我们新建一个这样的结构，`let subg = DiGraph::from_ast(ast);`（`from_ast` 本质上就是 `parse_ast` 的 Wrapper，方便使用罢了），让其先解析好自己。
+- 同是这个 `subg` 又是当前 `DiGraph` 的一个子节点（或者说子树），所以将其加入到当前的 `conts` 中，并建立一条 `self` 到 `subg` 的边。
+
+如此就完成了对 `BlockStmt` 的解析，其他节点都是类似的，思想不变。
+
+为了生成 dot 文件，观察以下代码：
+```rust
+impl Node {
+    pub fn to_dot(&self) -> String {
+        match self {
+            Self::Symbol(id, name) => {
+                format!("node{} [ label = \" {} \" ];", id, name)
+            }
+            Self::Subgraph(subg) => subg.to_dot(),
+        }
+    }
+}
+
+impl Edge {
+    pub fn to_dot(&self) -> String {
+        format!("node{} -> node{}", self.from, self.to)
+    }
+}
+
+impl Content {
+    pub fn to_dot(&self) -> String {
+        match self {
+            Self::Node(node) => node.to_dot(),
+            Self::Edge(edge) => edge.to_dot(),
+        }
+    }
+}
+
+impl DiGraph{
+    fn to_dot(&self) -> String {
+        let mut buf = format!(
+            "node{} [ label = \" {} \" ];",
+            self.id,
+            self.name.as_ref().expect("Unformed DiGraph!")
+        );
+        for cont in &self.conts {
+            buf.push_str(&cont.to_dot());
+            buf.push_str("\n");
+        }
+
+        buf
+    }
+}
+
+```
+
+同样是递归的生成，其含义是显然的。
+
+如此 ast 可视化就完成了：生成 dot 文件后，使用 `dot` 命令就可以生成相应的图了。
+
+例如 [test.c](test/ok/test.c) 的可视化如下：
+
+![](ast.png)
 
 ## 测试案例
 
@@ -568,7 +713,7 @@ _f:
 | num为数字的组合(不包括-等符号)                | `a=10;`                              | `a=-10;`                |
 | 支持二进制、八进制、十六进制和十进制数字      | `a=0b1;b=0o7;c=0xf;C=0xF;d=10;`      | `a=0o9;`                |
 | 注释为`/*...*/`或`//`的形式                   | `//a comment` `/*a comment*/`        | `/*wrong*`              |
-| 仅支持部分运算符`+-*/\><>=<=&|^<<>>`          | `a=a&1;`                             | `a=!1;`                 |
+| 仅支持部分运算符`+-*/\><>=<=&                 | ^<<>>`                               | `a=a&1;`                | `a=!1;` |
 | 空格、tab、换行等空白字符会被忽略             | `int a     =10;`                     | 一般不会有              |
 | 匹配`int void return`等关键字                 | `int a;return 0;`                    | `int return;`           |
 
