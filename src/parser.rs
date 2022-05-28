@@ -498,7 +498,7 @@ mod test_parse {
                 print!("└── ");
                 tabs.push(false);
             }
-            println!("{:?}", i.as_rule());
+            println!("{:?}: {}", i.as_rule(), i.as_str());
 
             dfs(tabs, i);
             tabs.pop();
