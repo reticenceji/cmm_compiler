@@ -50,7 +50,7 @@ Cmm(C minus minus) 编译器是《Compiler Construction: Principles and Practice
 注释和空白符的匹配规则
 
 ```
-WHITESPACE = _{ " " | "\n" | "\r" }
+WHITESPACE = _{ " " | "\n" | "\r" | "\t"}
 COMMENT = _{
     ("/*" ~ (!"*/" ~ ANY)* ~ "*/") // Block comment
     | ("//" ~ (!"\n" ~ ANY)* ~ ("\n" | EOI)) // Line comment
@@ -253,10 +253,10 @@ pub struct CodeBuilder<'ctx> {
     module: Module<'ctx>,
     builder: Builder<'ctx>,
 
-    global_variables: HashMap<String, (Type, PointerValue<'ctx>)>,
-    global_functions: HashMap<String, (Type, FunctionValue<'ctx>)>,
-    variables_stack: Vec<HashMap<String, (Type, PointerValue<'ctx>)>>,
-    current_function: Option<(Type, FunctionValue<'ctx>)>,
+        global_variables: HashMap<String, (Type, PointerValue<'ctx>)>,
+        global_functions: HashMap<String, (Type, FunctionValue<'ctx>)>,
+        variables_stack: Vec<HashMap<String, (Type, PointerValue<'ctx>)>>,
+        current_function: Option<(Type, FunctionValue<'ctx>)>,
 }
 ```
 
