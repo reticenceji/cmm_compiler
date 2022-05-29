@@ -67,7 +67,7 @@ fn main() {
                         };
                         codebuilder.build_asm(Path::new(&tmpfile));
                         process::Command::new("clang")
-                            .args([tmpfile.as_str(), io_c])
+                            .args([tmpfile.as_str(), io_c, "-o", filename.as_str()])
                             .spawn()
                             .expect("Fail to start clang")
                             .wait()
